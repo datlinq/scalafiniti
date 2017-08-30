@@ -8,7 +8,7 @@ libraryDependencies ++= Seq(
   "io.lemonlabs" %% "scala-uri" % "0.5.0",
   "com.typesafe" % "config" % "1.3.1",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
-  "ch.qos.logback" % "logback-classic" % "1.2.3",
+  //  "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.slf4j" % "slf4j-simple" % "1.7.25",
   "org.scalatest" %% "scalatest" % "3.0.0" % "test"
 )

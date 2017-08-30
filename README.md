@@ -7,6 +7,7 @@ See [datafiniti-api.readme.io](https://datafiniti-api.readme.io/)
 
 ## APIs supported
 - Business Data
+- Product Data
 
 ## Use
 

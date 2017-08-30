@@ -1,5 +1,4 @@
-package com.datlinq.datafiniti
-
+package com.datlinq.datafiniti.config
 
 /**
   * Created by Tom Lous on 30/08/2017.
@@ -15,11 +14,11 @@ object APITypes {
   }
 
   object Businesses extends APIType {
-    val name = "businesses"
+    override val name: String = "businesses"
   }
 
   object Products extends APIType {
-    val name = "products"
+    override val name: String = "products"
   }
 
 

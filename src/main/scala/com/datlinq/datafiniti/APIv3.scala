@@ -1,6 +1,8 @@
 package com.datlinq.datafiniti
 
-import com.datlinq.datafiniti.APITypes._
+import com.datlinq.datafiniti.config.APIFormats._
+import com.datlinq.datafiniti.config.APITypes._
+import com.datlinq.datafiniti.config.APIViews._
 import com.netaporter.uri.dsl._
 import com.typesafe.scalalogging.LazyLogging
 
@@ -14,35 +16,33 @@ case class APIv3(apiToken: String) extends API with LazyLogging {
 
 
   /**
+    * Builds the URI to be called based
     *
-    * # Set your API parameters here.
-    * APIToken = 'AAAXXXXXXXXXXXX'
-    * view = 'businesses_all'
-    * format = 'JSON'
-    * query = urllib.parse.quote_plus('categories:hotels')
-    * records = '1'
-    * download = 'false'
-    * *
-    * # Construct the API call.
-    * APICall = 'https://' + APIToken + ':@api.datafiniti.co/v3/data/businesses?' \
-    * + 'view=' + view \
-    * + '&format=' + format \
-    * + '&q=' + query \
-    * + '&records=' + records \
-    * + '&download=' + download
-    *
-    * @return
+    * @param apiType    specifies the last part of the API path
+    * @param queryParts list of key values for query string. Values set to None are omitted
+    * @return url as Tring
     */
-
-
   private def buildUrl(apiType: APIType, queryParts: Map[String, Any]): String = {
-    queryParts.foldLeft(s"$SCHEME://$apiToken:@$DOMAIN/$VERSION/data/$apiType")((uri, keyVal) => {
+    val uri = queryParts.foldLeft(s"$SCHEME://$apiToken:@$DOMAIN/$VERSION/data/$apiType")((uri, keyVal) => {
       uri & keyVal
     }).toString
+
+    logger.info("buildUrl: " + uri.replace(apiToken, "AAAXXXXXXXXXXXX"))
+
+    uri
   }
 
-  def query(apiType: APIType, view: Option[String], format: Option[String] = None, query: Option[String] = None, numberOfRecord: Option[Int] = None, download: Option[Boolean] = None) = {
-    val url = buildUrl(apiType, List("view" -> view, "format" -> format, "q" -> query, "numberOfRecord" -> numberOfRecord, "download" -> download).toMap)
+  /**
+    * Queries datafinity
+    *
+    * @param apiView         The view of the data
+    * @param query           Filter of fields
+    * @param numberOfRecords how many records to return in the its response.
+    * @param download        initiate a download request or not
+    * @param format          which data format you want to see. You can set it to JSON or CSV.
+    */
+  def query(apiView: APIView, query: Option[String] = None, numberOfRecords: Option[Int] = None, download: Option[Boolean] = None, format: APIFormat = JSON): Unit = {
+    val url = buildUrl(apiView.apiType, List("view" -> apiView, "format" -> format, "q" -> query, "records" -> numberOfRecords, "download" -> download).toMap)
 
     println(url)
   }
