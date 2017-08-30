@@ -32,6 +32,7 @@ case class APIv3(apiToken: String) extends API with LazyLogging {
     uri
   }
 
+
   /**
     * Queries datafinity
     *

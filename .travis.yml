@@ -4,7 +4,7 @@ scala:
 jdk:
 - oraclejdk8
 script:
-- sbt ++$TRAVIS_SCALA_VERSION coverage test
+- sbt coverage test
 - sbt publish
 branches:
   only:
