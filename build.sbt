@@ -37,6 +37,9 @@ testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/te
 
 coverageEnabled in Test := true
 
+//import org.scoverage.coveralls.Imports.CoverallsKeys._
+////coverallsToken := Some("my-token")
+
 
 scalacOptions ++= Seq(
   "-unchecked",
