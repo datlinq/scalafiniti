@@ -1,0 +1,20 @@
+language: scala
+scala:
+- 2.12.3
+jdk:
+- oraclejdk8
+script:
+- sbt ++$TRAVIS_SCALA_VERSION coverage test
+- sbt publish
+branches:
+  only:
+  - master
+notifications:
+  email:
+    recipients:
+    - lous@datlinq.com
+    on_success: always
+    on_failure: always
+  slack:
+    rooms:
+      secure: RIKAb78KANh5uRrUC145vsr3QU72c4J/k8MmpfaBxbYOHYhygvOU5CgcdOPkGYBYm43JQIgg2byZo7Vu14CtAmBvxVArZ2CcKAHvicxQqP7EJhVO9OzUUF45cNU+4rQGiDLIFlw0cbDSd9DHaPdypEcrhF80XDhS+cElrZAI6U/W9VIDuQeiwKUdh+0pWAfLs8mUBXHbCnjdVv0P5E1EdGVi+Btet5LCkw9xZT9TzNrg6dinRUhBETa4qwj5ZKvEjUkKr7MFdKzCgwBCdX1kfyNcwae3A2z/W2Cdr/HNzo+NfktJ9LYBwFMHQHFMvkjZ3GNIjPchN2kS91+wHyleRGdiUw2OTieNqKLXKLHmoM0td1mUteFrS+SjG97Svn3VR/3xHNyutERZxov36J1nErA2FIYWEM39S2M3mU/Llg7PbGB2R0Gacawxns8aAhWukSVXNsUlQnkdsOSVI4AEOPIJh4WHuS5EypapzkEbZEhiF30ofrlXreFKFn5Cr53nk0bldmj6BTlnRiyxUDuk2qWmF20dsbGn2Ppzch3reUhndsnkLnqhwsxci3LuqY6aw47T/c8svERI9CFEgsqQUw0Dt4EeLPoEwfkrPiDiseZtj4Y0q0lsQp+RcDIOPLGf4lXBi19n4uBiWKSPI75nLgiPpHEiAuyBlH+HtW8DT+o=
