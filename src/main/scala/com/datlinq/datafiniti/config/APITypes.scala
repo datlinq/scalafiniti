@@ -8,17 +8,17 @@ package com.datlinq.datafiniti.config
 object APITypes {
 
   sealed trait APIType {
-    val name: String
+    protected val name: String
 
     override def toString: String = name
   }
 
   object Businesses extends APIType {
-    override val name: String = "businesses"
+    override protected val name: String = "businesses"
   }
 
   object Products extends APIType {
-    override val name: String = "products"
+    override protected val name: String = "products"
   }
 
 

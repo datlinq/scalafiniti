@@ -10,7 +10,7 @@ object APIViews {
 
 
   sealed trait APIView {
-    val name: String
+    protected val name: String
     val apiType: APIType
 
     override def toString: String = name
@@ -20,28 +20,28 @@ object APIViews {
     * Businesses
     */
   object BusinessesAll extends APIView {
-    override val name: String = "businesses_all"
+    override protected val name: String = "businesses_all"
     override val apiType: APIType = Businesses
   }
 
   object BusinessesAllMenusFlat extends APIView {
-    override val name: String = "businesses_all_menusFlat"
+    override protected val name: String = "businesses_all_menusFlat"
     override val apiType: APIType = Businesses
   }
 
 
   object BusinessesAllNested extends APIView {
-    override val name: String = "businesses_all_nested"
+    override protected val name: String = "businesses_all_nested"
     override val apiType: APIType = Businesses
   }
 
   object BusinessesAllNestedNoReviews extends APIView {
-    override val name: String = "businesses_all_nested_no_reviews"
+    override protected val name: String = "businesses_all_nested_no_reviews"
     override val apiType: APIType = Businesses
   }
 
   object BusinessesAllBasic extends APIView {
-    override val name: String = "businesses_basic"
+    override protected val name: String = "businesses_basic"
     override val apiType: APIType = Businesses
   }
 
@@ -49,27 +49,27 @@ object APIViews {
     * Products
     */
   object ProductsAll extends APIView {
-    override val name: String = "products_all"
+    override protected val name: String = "products_all"
     override val apiType: APIType = Products
   }
 
   object ProductsKeysSourceURLs extends APIView {
-    override val name: String = "products_keysSourceURLs"
+    override protected val name: String = "products_keysSourceURLs"
     override val apiType: APIType = Products
   }
 
   object ProductsMultiValuedFieldsNested extends APIView {
-    override val name: String = "products_multiValuedFieldsNested"
+    override protected val name: String = "products_multiValuedFieldsNested"
     override val apiType: APIType = Products
   }
 
   object ProductsPricesFlat extends APIView {
-    override val name: String = "products_pricesFlat"
+    override protected val name: String = "products_pricesFlat"
     override val apiType: APIType = Products
   }
 
   object ProductsReviewsFlat extends APIView {
-    override val name: String = "products_reviewsFlat"
+    override protected val name: String = "products_reviewsFlat"
     override val apiType: APIType = Products
   }
 

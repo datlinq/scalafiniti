@@ -1,8 +1,10 @@
 package com.datlinq.datafiniti
 
+import com.datlinq.datafiniti.config.APIFormats.JSON
 import com.datlinq.datafiniti.config.APITypes._
+import com.datlinq.datafiniti.config.APIViews.BusinessesAllBasic
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{Outcome, PrivateMethodTester, fixture}
+import org.scalatest._
 
 /**
   * Created by Tom Lous on 30/08/2017.
@@ -20,6 +22,7 @@ class APIv3Test extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
+
   test("private buildUrl") { apiv3 => {
     val buildUrl = PrivateMethod[String]('buildUrl)
     val token = "-token-"
@@ -35,5 +38,39 @@ class APIv3Test extends fixture.FunSuite with PrivateMethodTester {
   }
   }
 
+
+  test("query") { apiv3 => {
+    val res = apiv3.query(BusinessesAllBasic, Some("categories:hotels"), Some(1), Some(false), JSON)
+
+    //      .map{
+    //            case json:JValue => {
+    //
+    //              println(json)
+    //              json
+    //            }
+    //            case x => {
+    //              println(x)
+    //
+    //            }
+
+    //    val output = Await.result(res, Duration.Inf)
+
+
+    //        println("test")
+    //        println(output)
+
+    //      .map{
+    //      case json:JValue => {
+    //        println(json)
+    //        assert(true)
+    //      }
+    //      case x => {
+    //        println(x)
+    //        assert(false)
+    //      }
+    //    }
+
+  }
+  }
 
 }
