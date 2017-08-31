@@ -1,23 +1,26 @@
 package com.datlinq.datafiniti
 
-import com.datlinq.datafiniti.config.APIFormats.JSON
-import com.datlinq.datafiniti.config.APITypes._
-import com.datlinq.datafiniti.config.APIViews.BusinessesAllBasic
+import com.datlinq.datafiniti.config.DatafinitiAPIFormats.JSON
+import com.datlinq.datafiniti.config.DatafinitiAPITypes._
+import com.datlinq.datafiniti.config.DatafinitiAPIViews.BusinessesAllBasic
 import com.typesafe.config.ConfigFactory
 import org.scalatest._
+
+import scala.concurrent._
+import scala.concurrent.duration._
 
 /**
   * Created by Tom Lous on 30/08/2017.
   * Copyright © 2017 Datlinq B.V..
   */
-class APIv3Test extends fixture.FunSuite with PrivateMethodTester {
+class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
 
-  type FixtureParam = APIv3
+  type FixtureParam = DatafinitiAPIv3
 
   def withFixture(test: OneArgTest): Outcome = {
     val config = ConfigFactory.load()
     val apiKey = config.getString("apiKey")
-    val apiv3 = APIv3(apiKey)
+    val apiv3 = DatafinitiAPIv3(apiKey)
     test(apiv3)
   }
 
@@ -42,6 +45,7 @@ class APIv3Test extends fixture.FunSuite with PrivateMethodTester {
   test("query") { apiv3 => {
     val res = apiv3.query(BusinessesAllBasic, Some("categories:hotels"), Some(1), Some(false), JSON)
 
+
     //      .map{
     //            case json:JValue => {
     //
@@ -53,11 +57,11 @@ class APIv3Test extends fixture.FunSuite with PrivateMethodTester {
     //
     //            }
 
-    //    val output = Await.result(res, Duration.Inf)
+    val output = Await.result(res, Duration.Inf)
 
 
-    //        println("test")
-    //        println(output)
+    println("test")
+    println(output)
 
     //      .map{
     //      case json:JValue => {

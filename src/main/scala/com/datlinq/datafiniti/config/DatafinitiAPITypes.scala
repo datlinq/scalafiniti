@@ -5,7 +5,7 @@ package com.datlinq.datafiniti.config
   * Copyright © 2017 Datlinq B.V..
   */
 
-object APITypes {
+object DatafinitiAPITypes {
 
   sealed trait APIType {
     protected val name: String

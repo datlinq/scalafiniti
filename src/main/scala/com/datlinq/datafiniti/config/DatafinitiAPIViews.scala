@@ -1,12 +1,12 @@
 package com.datlinq.datafiniti.config
 
-import com.datlinq.datafiniti.config.APITypes._
+import com.datlinq.datafiniti.config.DatafinitiAPITypes._
 
 /**
   * Created by Tom Lous on 30/08/2017.
   * Copyright © 2017 Datlinq B.V..
   */
-object APIViews {
+object DatafinitiAPIViews {
 
 
   sealed trait APIView {

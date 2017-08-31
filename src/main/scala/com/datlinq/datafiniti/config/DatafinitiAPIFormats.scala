@@ -5,7 +5,7 @@ package com.datlinq.datafiniti.config
   * Created by Tom Lous on 30/08/2017.
   * Copyright © 2017 Datlinq B.V..
   */
-object APIFormats {
+object DatafinitiAPIFormats {
 
   sealed trait APIFormat {
     protected val name: String
