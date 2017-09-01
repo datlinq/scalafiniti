@@ -12,13 +12,67 @@ See [datafiniti-api.readme.io](https://datafiniti-api.readme.io/)
 
 ## Use
 
+The code was build for scala 2.12
+and for version v3 of the Dafaniti
+
 ### Set up SBT
-_placeholder_
 
-### _placeholder_
+Add to your build.sbt
 
-_placeholder_
+```scala
+libraryDependencies += "com.datlinq.datafiniti" %% "scalafiniti" % "{latestVersion}"
+```
 
+Then add import statement
+
+```scala
+import com.datlinq.datafiniti
+```
+
+Create an  APIv3 object
+
+```scala
+val apiKey =  ...
+val apiv3 = DatafinitiAPIv3(apiKey)
+```
+
+Now query the API
+
+Errors in the future or non-200 results are captured in the left part of the Either (Throwable)
+
+Otherwise the result is parsed with json4s (even CSV requests, that return json with as CSV field) 
+
+```scala
+val response[Future[Either[Throwable,JValue]]] = apiv3.query(
+  apiView = BusinessesAllBasic, 
+  query = Some("categories:hotels"), 
+  numberOfRecords = Some(1), 
+  download = Some(false), 
+  format = JSON)
+
+```
+
+Download flow
+
+@todo build this
+
+### possible Formats
+
+* `JSON`
+* `CSV` (still json result, but with one CSV field)
+
+### possible API Views in v3
+
+* `BusinessesAll` - businesses_all
+* `BusinessesAllMenusFlat` - businesses_all_menusFlat
+* `BusinessesAllNested` - businesses_all_nested
+* `BusinessesAllNestedNoReviews` - businesses_all_nested_no_reviews
+* `BusinessesAllBasic` - businesses_basic
+* `ProductsAll` - products_all
+* `ProductsKeysSourceURLs` - products_keysSourceURLs
+* `ProductsMultiValuedFieldsNested` - products_multiValuedFieldsNested
+* `ProductsPricesFlat` - products_pricesFlat
+* `ProductsReviewsFlat` - products_reviewsFlat
 
 ## History
 
@@ -27,3 +81,15 @@ _placeholder_
 
 ## Sample
 
+```scala
+val response:Future[Either[Throwable,JValue]] = apiv3.query(
+  apiView = BusinessesAllBasic, 
+  query = Some("categories:hotels"), 
+  numberOfRecords = Some(1), 
+  download = Some(false), 
+  format = JSON)
+  
+val output:Either[Throwable,JValue] = Await.result(response, Duration.Inf)
+
+val json = output.getOrElse(JNothing)
+```
