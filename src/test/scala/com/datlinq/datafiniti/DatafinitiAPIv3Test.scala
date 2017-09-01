@@ -65,4 +65,10 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
   }
   }
 
+  test("safeUri") { apiv3 => {
+    assert(apiv3.safeUri("fffff" + apiv3.apiToken + "gggggg") === "fffffAAAXXXXXXXXXXXXgggggg")
+    assert(apiv3.safeUri("fffffgggggg") === "fffffgggggg")
+  }
+  }
+
 }

@@ -72,25 +72,36 @@ case class DatafinitiAPIv3(apiToken: String) extends DatafinitiAPI with LazyLogg
         .asString
     })
       .map(response => {
-        logger.debug("response from:  " + safeUri(uri) + " => " + response.toString)
+        logger.debug(s"response from ${safeUri(uri)} => ${response.headers}")
         response.code match {
           case 200 => {
             Right(parse(response.body))
           }
           case c => {
-            val error = s"HTTP error ${response.code} from $uri :=> ${response.body}"
+            val error = s"HTTP error ${response.code} from ${safeUri(uri)} => ${response.body}"
             logger.error(error)
             val errorMessage = Try(s"HTTP $c:" + (parse(response.body) \ "error").extract[String]).getOrElse(error)
             Left(new Exception(errorMessage))
           }
         }
       }).recover {
-      case t: Throwable => Left(t)
+      // $COVERAGE-OFF$Not sure how to test this
+      case t: Throwable => {
+        logger.error(s"call from ${safeUri(uri)} failed => " + t.getMessage)
+        Left(t)
+      }
+      // $COVERAGE-ON$
     }
   }
 
 
-  def safeUri(uri: String) = uri.replace(apiToken, "AAAXXXXXXXXXXXX")
+  /**
+    * Create a safe uri without API token for logging purposes
+    *
+    * @param uri String
+    * @return String
+    */
+  def safeUri(uri: String): String = uri.replace(apiToken, "AAAXXXXXXXXXXXX")
 
 
 
