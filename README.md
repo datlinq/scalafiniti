@@ -4,23 +4,24 @@
 [<img src="https://img.shields.io/maven-central/v/com.datlinq/scalafiniti.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22scalafiniti%22) 
 
 # Scalafiniti: A Scala wrapper for Datafiniti API
+The Datafiniti API is owned and maintained by Datafinity
 See [datafiniti-api.readme.io](https://datafiniti-api.readme.io/)
 
-## APIs supported
+This is an open source wrapper for that API, maintained by Datlinq
+
+## Datafiniti API endpoints supported
 - Business Data
 - Product Data
 
 ## Use
 
-The code was build for scala 2.12
-and for version v3 of the Dafaniti
 
 ### Set up SBT
 
 Add to your build.sbt
 
 ```scala
-libraryDependencies += "com.datlinq.datafiniti" %% "scalafiniti" % "{latestVersion}"
+libraryDependencies += "com.datlinq.datalabs" %% "scalafiniti" % "{latestVersion}"
 ```
 
 Then add import statement
@@ -93,3 +94,7 @@ val output:Either[Throwable,JValue] = Await.result(response, Duration.Inf)
 
 val json = output.getOrElse(JNothing)
 ```
+
+## Compatibility
+
+The code was build for scala 2.12 and for version v3 of the Dafaniti API
