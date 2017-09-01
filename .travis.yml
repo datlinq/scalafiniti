@@ -3,6 +3,8 @@ scala:
   - 2.12.3
 jdk:
   - oraclejdk8
+env:
+  - LOGLEVEL=info
 script:
   - sbt clean coverage test coverageReport
 after_success:

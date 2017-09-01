@@ -7,9 +7,8 @@ scalaVersion := "2.12.3"
 
 libraryDependencies ++= Seq(
   "io.lemonlabs" %% "scala-uri" % "0.5.0",
-  //  "com.typesafe.play" %% "play-ahc-ws-standalone" % "1.0.4",
-  //  "com.typesafe.play" %% "play-ws-standalone-json" % "1.0.4",
   "org.scalaj" %% "scalaj-http" % "2.3.0",
+  "org.json4s" %% "json4s-native" % "3.5.3",
 
   "com.typesafe" % "config" % "1.3.1",
 
@@ -38,7 +37,7 @@ publishTo := {
 resolvers +=
   "Datalabs Artifactory" at "http://jfrog.datlinq.info:8081/artifactory/libs-release-local/"
 
-testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/test-reports")
+//testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/test-reports")
 
 coverageEnabled in Test := true
 
