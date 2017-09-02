@@ -10,10 +10,8 @@ script:
   - sbt coveralls
 after_success:
   - echo "$PGP_SECRET" | base64 --decode | gpg --import
-  - echo "$PGP_SECRET"
-  - echo "$PGP_PASS"
   - sbt "pgp-cmd list-keys"
-  - sbt publishSigned sonatypeRelease
+  - sbt "sonatypeOpen com.datlinq com.datlinq" publishSigned sonatypeRelease
 #  - sbt publish
 cache:
   directories:

@@ -21,7 +21,7 @@ This is an open source wrapper for that API, maintained by Datlinq
 Add to your build.sbt
 
 ```scala
-libraryDependencies += "com.datlinq.datalabs" %% "scalafiniti" % "{latestVersion}"
+libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.1"
 ```
 
 Then add import statement
