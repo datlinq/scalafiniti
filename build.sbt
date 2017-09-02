@@ -2,15 +2,8 @@ name := "scalafiniti"
 organization := "com.datlinq"
 
 
-val versionNum = "0.1"
+version := "0.1"
 isSnapshot := true
-
-version := {
-  if (isSnapshot.value)
-    versionNum
-  else
-    versionNum
-}
 
 scalaVersion := "2.12.3"
 
@@ -92,6 +85,8 @@ publishMavenStyle := true
 publishArtifact in Test := false
 pomIncludeRepository := { _ => false }
 useGpg := true
+pgpPassphrase := sys.env.get("PGP_PASS").map(_.toArray)
+
 
 licenses := Seq(("MIT", url("http://opensource.org/licenses/MIT")))
 homepage := Some(url("https://github.com/datlinq/scalafiniti"))
