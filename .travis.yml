@@ -7,10 +7,15 @@ env:
   - LOGLEVEL=info
 script:
   - sbt clean coverage test coverageReport
-after_success:
   - sbt coveralls
+after_success:
+  - echo "$PGP_SECRET" | base64 --decode | gpg --import
+  - sbt publishSigned sonatypeRelease
 #  - sbt publish
-
+cache:
+  directories:
+    - $HOME/.ivy2
+    - $HOME/.sbt
 branches:
   only:
   - master
