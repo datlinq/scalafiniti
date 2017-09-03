@@ -71,4 +71,4 @@ project/plugins/project/
 *.properties_dev
 
 meta
-
+*.credentials

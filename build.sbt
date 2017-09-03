@@ -1,3 +1,5 @@
+
+
 name := "scalafiniti"
 organization := "com.datlinq"
 
@@ -86,7 +88,13 @@ publishArtifact in Test := false
 pomIncludeRepository := { _ => false }
 useGpg := true
 usePgpKeyHex("614567F6305DA15D")
-pgpPassphrase := sys.env.get("PGP_PASS").map(_.toArray)
+pgpPassphrase in ThisBuild := sys.env.get("PGP_PASS").map(_.toArray)
+credentials += Credentials(file("gpg.credentials"))
+
+//pgpSecretRing := file("./scripts/datalabs.asc")
+//PgpKeys.useGpg := true
+//PgpKeys.pgpPassphrase := sys.env.get("PGP_PASS").map(_.toArray)
+
 
 licenses := Seq(("MIT", url("http://opensource.org/licenses/MIT")))
 homepage := Some(url("https://github.com/datlinq/scalafiniti"))
