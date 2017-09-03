@@ -88,7 +88,7 @@ publishArtifact in Test := false
 pomIncludeRepository := { _ => false }
 useGpg := true
 usePgpKeyHex("614567F6305DA15D")
-pgpPassphrase in ThisBuild := sys.env.get("PGP_PASS").map(_.toArray)
+pgpPassphrase in ThisBuild := Some(Array.empty[Char]) //sys.env.get("PGP_PASS").map(_.toArray)
 credentials += Credentials(file("gpg.credentials"))
 
 //pgpSecretRing := file("./scripts/datalabs.asc")

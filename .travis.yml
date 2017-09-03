@@ -15,7 +15,10 @@ script:
 after_success:
   - sbt "pgp-cmd list-keys"
   - gpg --list-keys --fingerprint
-  - sbt "sonatypeOpen com.datlinq com.datlinq" publishSigned sonatypeRelease
+  - gpg --list-secret-keys --fingerprint
+  - sbt "sonatypeOpen com.datlinq com.datlinq"
+  - sbt publishSigned
+  - sbtsonatypeRelease
 #  - sbt publish
 cache:
   directories:
