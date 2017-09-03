@@ -5,14 +5,16 @@ jdk:
   - oraclejdk8
 env:
   - LOGLEVEL=info
+before_install:
+ - echo "$PGP_SECRET" | base64 --decode | gpg --import
+ - echo "$PGP_TRUST" | base64 --decode | gpg --import-ownertrust
 script:
   - sbt clean coverage test coverageReport
   - sbt coveralls
 after_success:
-  - echo "$PGP_SECRET" | base64 --decode | gpg --import
   - sbt "pgp-cmd list-keys"
   - gpg --list-keys --fingerprint
-  - echo "${PGP_PASS}" | sbt "sonatypeOpen com.datlinq com.datlinq" publishSigned sonatypeRelease
+  - sbt "sonatypeOpen com.datlinq com.datlinq" publishSigned sonatypeRelease
 #  - sbt publish
 cache:
   directories:
