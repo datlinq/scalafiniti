@@ -11,7 +11,8 @@ script:
 after_success:
   - echo "$PGP_SECRET" | base64 --decode | gpg --import
   - sbt "pgp-cmd list-keys"
-  - sbt "sonatypeOpen com.datlinq com.datlinq" publishSigned sonatypeRelease
+  - gpg --list-keys --fingerprint
+  - echo "${PGP_PASS}" | sbt "sonatypeOpen com.datlinq com.datlinq" publishSigned sonatypeRelease
 #  - sbt publish
 cache:
   directories:
