@@ -18,7 +18,7 @@ after_success:
   - gpg --list-secret-keys --fingerprint
   - sbt "sonatypeOpen com.datlinq com.datlinq"
   - sbt publishSigned
-  - sbtsonatypeRelease
+  - sbt sonatypeRelease
 #  - sbt publish
 cache:
   directories:
