@@ -6,7 +6,7 @@ jdk:
 env:
 - LOGLEVEL=info
 before_install:
-- openssl aes-256-cbc -K $encrypted_391999303d86_key -iv $encrypted_391999303d86_iv -in gpgring.tar.enc -out gpgring.tar -d
+- openssl aes-256-cbc -K $encrypted_391999303d86_key -iv $encrypted_391999303d86_iv -in project/gnupg/gpgring.tar.enc -out gpgring.tar -d
 - tar xvf gpgring.tar
 script:
 - sbt clean coverage test coverageReport coveralls

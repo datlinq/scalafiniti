@@ -2,7 +2,9 @@ name := "scalafiniti"
 organization := "com.datlinq"
 
 
-version := "0.2-SNAPSHOT"
+//enablePlugins(GitVersioning)
+//git.baseVersion := "0.1"
+//version := "0.1.1"
 isSnapshot := true
 
 scalaVersion := "2.12.3"

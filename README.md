@@ -7,7 +7,7 @@
 The Datafiniti API is owned and maintained by Datafinity
 See [datafiniti-api.readme.io](https://datafiniti-api.readme.io/)
 
-This is an open source wrapper for that API, maintained by Datlinq
+This is an open source wrapper for that API, maintained by [Datlinq](http://datlinq.com)
 
 ## Datafiniti API endpoints supported
 - Business Data
