@@ -1,5 +1,7 @@
 package com.datlinq.datafiniti
 
+import java.util.concurrent.ScheduledThreadPoolExecutor
+
 import com.datlinq.datafiniti.config.DatafinitiAPIFormats._
 import com.datlinq.datafiniti.config.DatafinitiAPITypes._
 import com.datlinq.datafiniti.config.DatafinitiAPIViews._
@@ -10,8 +12,8 @@ import org.json4s._
 import org.json4s.native.JsonMethods._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.util.Try
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future, Promise}
 import scalaj.http._
 
 
@@ -42,6 +44,35 @@ case class DatafinitiAPIv3(apiToken: String) extends DatafinitiAPI with LazyLogg
     uri
   }
 
+  private def request[T](uri: String, followRedirect: Boolean = true)(codeCheck: Int => Boolean, successHandler: HttpResponse[String] => Either[Throwable, T]): Future[Either[Throwable, T]] = {
+
+    Future({
+      logger.debug("request:  " + safeUri(uri))
+      Http(uri)
+        .auth(apiToken, "")
+        .option(HttpOptions.followRedirects(followRedirect))
+        .asString
+    })
+      .map(response => {
+        logger.debug(s"response from ${safeUri(uri)} => ${response.headers.mkString("|")}")
+        response.code match {
+          case code if codeCheck(code) => successHandler(response)
+          case code => {
+            val error = s"HTTP error ${response.code} from ${safeUri(uri)} => ${response.body}"
+            logger.error(error)
+            Left(new Exception(error))
+          }
+        }
+      })
+      .recover {
+        // $COVERAGE-OFF$Not sure how to test this
+        case t: Throwable => {
+          logger.error(s"call from ${safeUri(uri)} failed => " + t.getMessage)
+          Left(t)
+        }
+        // $COVERAGE-ON$
+      }
+  }
 
   /**
     * Queries datafinity
@@ -65,34 +96,103 @@ case class DatafinitiAPIv3(apiToken: String) extends DatafinitiAPI with LazyLogg
       ).toMap)
 
 
-    Future({
-      logger.debug("query:  " + safeUri(uri))
-      Http(uri)
-        .auth(apiToken, "")
-        .option(HttpOptions.followRedirects(true))
-        .asString
-    })
-      .map(response => {
-        logger.debug(s"response from ${safeUri(uri)} => ${response.headers}")
-        response.code match {
-          case 200 => {
-            Right(parse(response.body))
-          }
-          case c => {
-            val error = s"HTTP error ${response.code} from ${safeUri(uri)} => ${response.body}"
-            logger.error(error)
-            val errorMessage = Try(s"HTTP $c:" + (parse(response.body) \ "error").extract[String]).getOrElse(error)
-            Left(new Exception(errorMessage))
-          }
+    request(uri)(_ == 200, response => Right(parse(response.body)))
+  }
+
+
+  def download(apiView: APIView, query: Option[String] = None, format: APIFormat = JSON): Future[Either[Throwable, String]] = {
+    val uri = buildUrl(
+      apiType = apiView.apiType,
+      queryParts = List(
+        "view" -> apiView,
+        "format" -> format,
+        "q" -> query,
+        "download" -> Some(true)
+      ).toMap)
+
+    /**
+      * Extract redirect from 303 redirects and poll these
+      *
+      * @param response HttpResponse from original URL
+      * @return Either an exception or a url to poll
+      */
+    def parseRedirect(response: HttpResponse[String]): Either[Throwable, String] = {
+      (for {
+        option <- response.headers.get("location")
+        location <- option.headOption
+      } yield location) match {
+        case Some(path) => {
+          Right(s"$SCHEME://$DOMAIN$path")
         }
-      }).recover {
-      // $COVERAGE-OFF$Not sure how to test this
-      case t: Throwable => {
-        logger.error(s"call from ${safeUri(uri)} failed => " + t.getMessage)
-        Left(t)
+        case None => {
+          val error = s"No valid redirect found from ${safeUri(uri)} => Redirect (303)"
+          logger.error(error)
+          Left(new Exception(error))
+        }
       }
-      // $COVERAGE-ON$
     }
+
+    val scheduledExecutor = new ScheduledThreadPoolExecutor(1)
+    val p = Promise[List[String]]()
+
+
+    //    def checkPollData(response:HttpResponse[String]):Either[Throwable, List[String]] = {
+    //
+    //    }
+    //
+    //
+    //    def checkForDownloadLinks(uri: String): Future[Option[List[String]]] = Future({
+    //      request(uri)(_ == 200, checkPollData).map(_ match {
+    //        case Right(res) => Some(res)
+    //        case Left(_) => None
+    //      }
+    //
+    //
+    //      val success = Random.nextDouble() <= 0.2
+    //      println(s"Call to checkForDownloadLinks => $success")
+    //      if (success) Some(List("link1", "link2")) else None
+    //    })
+    //
+    //    def pollForDownloadLinks(uri: String): Future[List[String]] = {
+    //      def scheduleDelayedPoll(p: Promise[List[String]]) = {
+    //        scheduledExecutor.schedule(new Runnable {
+    //          override def run() = poll(p)
+    //        },
+    //          10, TimeUnit.SECONDS)
+    //      }
+    //
+    //      def poll(p: Promise[List[String]]): Unit = {
+    //        checkForDownloadLinks(uri).onComplete {
+    //          case s: Success[Option[List[String]]] if s.value.isDefined  => p.success(s.value.get)
+    //          case f: Failure[_] => scheduleDelayedPoll(p)
+    //        }
+    //      }
+    //
+    //
+    //      poll(p)
+    //      p.future
+    //    }
+
+
+    //    val x:Int = pollForDownloadLinks
+
+    //    val result = Await.result(pollForDownloadLinks, Duration.Inf)
+    //    println(result)
+
+    val res = for {
+      result <- request(uri, followRedirect = false)(_ == 303, parseRedirect)
+      pollUri <- result.right
+      links <- pollForDownloadLinks(pollUri)
+
+    } yield links
+
+
+    val output = Await.result(res, Duration.Inf)
+
+
+    println(output)
+
+
   }
 
 

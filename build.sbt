@@ -64,8 +64,8 @@ pomIncludeRepository := { _ => false }
 
 useGpg := false
 usePgpKeyHex("614567F6305DA15D")
-pgpPublicRing := baseDirectory.value / "pubring.gpg"
-pgpSecretRing := baseDirectory.value / "secring.gpg"
+pgpPublicRing := baseDirectory.value / "project" / "gnupg" / "pubring.gpg"
+pgpSecretRing := baseDirectory.value / "project" / "gnupg" / "secring.gpg"
 pgpPassphrase := sys.env.get("PGP_PASS").map(_.toArray)
 
 

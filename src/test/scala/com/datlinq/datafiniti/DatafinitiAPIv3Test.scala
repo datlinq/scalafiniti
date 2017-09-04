@@ -45,7 +45,7 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
-  test("query") { apiv3 => {
+  ignore("query") { apiv3 => {
     val compositeFuture = {
       for {
         future1 <- apiv3.query(BusinessesAllBasic, Some("categories:hotels"), Some(1), Some(false), JSON)
@@ -61,6 +61,26 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
     assert(outputs._3.isInstanceOf[Right[Throwable, JValue]])
     assert(outputs._1.map(json => (json \ "estimated total").extract[Int]).getOrElse(0) > 10000)
     assert(outputs._2.left.get.getMessage.contains("user does not have access to this view"))
+  }
+  }
+
+
+  test("download") { apiv3 => {
+    val compositeFuture = {
+      for {
+        future1 <- apiv3.download(BusinessesAllBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON)
+      //        future2 <- apiv3.query(ProductsAll, Some("non-existing"), Some(1), Some(false), JSON)
+      //        future3 <- apiv3.query(BusinessesAllBasic, Some("categories:hotels"), Some(1), Some(false), CSV)
+      } yield (future1)
+    }
+
+    val outputs = Await.result(compositeFuture, Duration.Inf)
+
+    //    assert(outputs._1.isInstanceOf[Right[Throwable, JValue]])
+    //    assert(outputs._2.isInstanceOf[Left[Throwable, JValue]])
+    //    assert(outputs._3.isInstanceOf[Right[Throwable, JValue]])
+    //    assert(outputs._1.map(json => (json \ "estimated total").extract[Int]).getOrElse(0) > 10000)
+    //    assert(outputs._2.left.get.getMessage.contains("user does not have access to this view"))
   }
   }
 
