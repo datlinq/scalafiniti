@@ -27,13 +27,15 @@ libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.1"
 Then add import statement
 
 ```scala
-import com.datlinq.datafiniti
+import com.datlinq.datafiniti._
+import com.datlinq.datafiniti.config.DatafinitiAPIFormats._
+import com.datlinq.datafiniti.config.DatafinitiAPIViews._
 ```
 
 Create an  APIv3 object
 
 ```scala
-val apiKey =  ...
+val apiKey = "..."
 val apiv3 = DatafinitiAPIv3(apiKey)
 ```
 
@@ -83,14 +85,25 @@ Download flow
 ## Sample
 
 ```scala
-val response:Future[Either[Throwable,JValue]] = apiv3.query(
-  apiView = BusinessesAllBasic, 
-  query = Some("categories:hotels"), 
-  numberOfRecords = Some(1), 
-  download = Some(false), 
+import com.datlinq.datafiniti._
+import com.datlinq.datafiniti.config.DatafinitiAPIFormats._
+import com.datlinq.datafiniti.config.DatafinitiAPIViews._
+
+import org.json4s.JsonAST.JNothing
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
+val apiKey = "..."
+val apiv3 = DatafinitiAPIv3(apiKey)
+
+val response = apiv3.query(
+  apiView = BusinessesAllBasic,
+  query = Some("categories:hotels"),
+  numberOfRecords = Some(1),
+  download = Some(false),
   format = JSON)
-  
-val output:Either[Throwable,JValue] = Await.result(response, Duration.Inf)
+
+val output = Await.result(response, Duration.Inf)
 
 val json = output.getOrElse(JNothing)
 ```

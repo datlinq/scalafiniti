@@ -1,10 +1,8 @@
-
-
 name := "scalafiniti"
 organization := "com.datlinq"
 
 
-version := "0.1"
+version := "0.2-SNAPSHOT"
 isSnapshot := true
 
 scalaVersion := "2.12.3"
@@ -37,33 +35,10 @@ scalacOptions ++= Seq(
 
 /* Test */
 
-//testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-u", "target/test-reports")
 coverageEnabled in Test := true
 
 
 /* Publish */
-
-
-/*
-// Datlinq local
-resolvers +=
-  "Datalabs Artifactory" at "http://jfrog.datlinq.info:8081/artifactory/libs-release-local/"
-
-credentials += Credentials(
-  "Artifactory Realm",
-  "jfrog.datlinq.info",
-  sys.env.getOrElse("JFROG_USER", ""),
-  sys.env.getOrElse("JFROG_PASS", "")
-)
-
-publishTo := {
-  val jfrog = "http://jfrog.datlinq.info:8081/artifactory/"
-  if (isSnapshot.value)
-    Some("Libs Snapshots" at jfrog + "libs-snapshot-local")
-  else
-    Some("Libs Releases" at jfrog + "libs-release-local")
-}
-*/
 
 // Sonatype
 credentials += Credentials(
@@ -81,7 +56,6 @@ publishTo := Some(
 )
 
 
-
 publishMavenStyle := true
 publishArtifact in Test := false
 pomIncludeRepository := { _ => false }
@@ -91,12 +65,6 @@ usePgpKeyHex("614567F6305DA15D")
 pgpPublicRing := baseDirectory.value / "pubring.gpg"
 pgpSecretRing := baseDirectory.value / "secring.gpg"
 pgpPassphrase := sys.env.get("PGP_PASS").map(_.toArray)
-
-//credentials += Credentials(file("gpg.credentials"))
-
-//pgpSecretRing := file("./scripts/datalabs.asc")
-//PgpKeys.useGpg := true
-//PgpKeys.pgpPassphrase := sys.env.get("PGP_PASS").map(_.toArray)
 
 
 licenses := Seq(("MIT", url("http://opensource.org/licenses/MIT")))
