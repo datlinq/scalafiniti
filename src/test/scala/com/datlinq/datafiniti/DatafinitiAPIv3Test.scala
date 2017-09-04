@@ -3,7 +3,7 @@ package com.datlinq.datafiniti
 import com.datlinq.datafiniti.config.DatafinitiAPIFormats.{CSV, JSON}
 import com.datlinq.datafiniti.config.DatafinitiAPITypes._
 import com.datlinq.datafiniti.config.DatafinitiAPIViews.{BusinessesAllBasic, ProductsAll}
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import org.json4s._
 import org.scalatest._
 
@@ -22,9 +22,8 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
   implicit val json4sFormats = DefaultFormats
 
   def withFixture(test: OneArgTest): Outcome = {
-    val config = ConfigFactory.load()
-    val apiKey = config.getString("apiKey")
-    val apiv3 = DatafinitiAPIv3(apiKey)
+    implicit val config: Config = ConfigFactory.load()
+    val apiv3 = DatafinitiAPIv3()
     test(apiv3)
   }
 
@@ -68,6 +67,17 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
   test("safeUri") { apiv3 => {
     assert(apiv3.safeUri("fffff" + apiv3.apiToken + "gggggg") === "fffffAAAXXXXXXXXXXXXgggggg")
     assert(apiv3.safeUri("fffffgggggg") === "fffffgggggg")
+  }
+  }
+
+  test("constructor with config") { apiv3 => {
+    val config: Config = ConfigFactory.load()
+    val token = config.getString("datafinity.apiKey")
+    val apiv3_2 = DatafinitiAPIv3(token)
+
+    assert(apiv3_2.apiToken === apiv3.apiToken)
+
+
   }
   }
 

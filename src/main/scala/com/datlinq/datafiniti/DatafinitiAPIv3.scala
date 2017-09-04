@@ -4,6 +4,7 @@ import com.datlinq.datafiniti.config.DatafinitiAPIFormats._
 import com.datlinq.datafiniti.config.DatafinitiAPITypes._
 import com.datlinq.datafiniti.config.DatafinitiAPIViews._
 import com.netaporter.uri.dsl._
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import org.json4s._
 import org.json4s.native.JsonMethods._
@@ -105,4 +106,17 @@ case class DatafinitiAPIv3(apiToken: String) extends DatafinitiAPI with LazyLogg
 
 
 
+}
+
+object DatafinitiAPIv3 {
+
+  /**
+    * Creates a DatafinitiAPIv3 instance based on config apikey defined in "datafinity.apiKey"
+    *
+    * @param config implicitly
+    * @return DatafinitiAPIv3 object
+    */
+  def apply()(implicit config: Config): DatafinitiAPIv3 = {
+    DatafinitiAPIv3(config.getString("datafinity.apiKey"))
+  }
 }
