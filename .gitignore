@@ -74,3 +74,4 @@ meta
 *.credentials
 *.gpg
 *.asc
+*.tar
