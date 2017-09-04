@@ -72,3 +72,5 @@ project/plugins/project/
 
 meta
 *.credentials
+*.gpg
+*.asc

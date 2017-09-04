@@ -73,23 +73,26 @@ credentials += Credentials(
   sys.env.getOrElse("SONATYPE_PASS", "")
 )
 
-publishTo := {
-  val nexus = "https://oss.sonatype.org/"
+publishTo := Some(
   if (isSnapshot.value)
-    Some("snapshots" at nexus + "content/repositories/snapshots")
+    Opts.resolver.sonatypeSnapshots
   else
-    Some("releases" at nexus + "service/local/staging/deploy/maven2")
-}
+    Opts.resolver.sonatypeReleases
+)
 
 
 
 publishMavenStyle := true
 publishArtifact in Test := false
 pomIncludeRepository := { _ => false }
-useGpg := true
+
+useGpg := false
 usePgpKeyHex("614567F6305DA15D")
-pgpPassphrase in ThisBuild := Some(Array.empty[Char]) //sys.env.get("PGP_PASS").map(_.toArray)
-credentials += Credentials(file("gpg.credentials"))
+pgpPublicRing := baseDirectory.value / "pubring.gpg"
+pgpSecretRing := baseDirectory.value / "secring.gpg"
+pgpPassphrase := sys.env.get("PGP_PASS").map(_.toArray)
+
+//credentials += Credentials(file("gpg.credentials"))
 
 //pgpSecretRing := file("./scripts/datalabs.asc")
 //PgpKeys.useGpg := true

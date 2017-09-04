@@ -6,19 +6,18 @@ jdk:
 env:
   - LOGLEVEL=info
 before_install:
- - echo "$PGP_SECRET" | base64 --decode | gpg --import
- - echo "$PGP_TRUST" | base64 --decode | gpg --import-ownertrust
+# - echo "$PGP_SECRET" | base64 --decode | gpg --import
+# - echo "$PGP_TRUST" | base64 --decode | gpg --import-ownertrust
  - openssl aes-256-cbc -K $encrypted_391999303d86_key -iv $encrypted_391999303d86_iv -in gpg.credentials.enc -out gpg.credentials -d
+ - openssl aes-256-cbc -K $encrypted_391999303d86_key -iv $encrypted_391999303d86_iv -in pubring.gpg.enc -out pubring.gpg -d
+ - openssl aes-256-cbc -K $encrypted_391999303d86_key -iv $encrypted_391999303d86_iv -in secring.gpg.enc -out secring.gpg -d
 script:
-  - sbt clean coverage test coverageReport
-  - sbt coveralls
+  - sbt clean coverage test coverageReport coveralls
 after_success:
-  - sbt "pgp-cmd list-keys"
-  - gpg --list-keys --fingerprint
-  - gpg --list-secret-keys --fingerprint
-  - sbt "sonatypeOpen com.datlinq com.datlinq"
-  - sbt publishSigned
-  - sbt sonatypeRelease
+#  - sbt "pgp-cmd list-keys"
+#  - gpg --list-keys --fingerprint
+#  - gpg --list-secret-keys --fingerprint
+  - sbt "sonatypeOpen com.datlinq com.datlinq" +publishSigned sonatypeReleaseAll
 #  - sbt publish
 cache:
   directories:
