@@ -10,6 +10,10 @@ sealed trait DatafinitiError {
   def url: String
 
   def message: String
+
+  def exception: Exception = new Exception(message)
+
+  override def toString: String = message
 }
 
 object DatafinitiError {
@@ -24,24 +28,30 @@ object DatafinitiError {
     optionalLogger.foreach(_.error(message))
   }
 
-  //
-  //  final case class NoRedirectFromDownload(message: String, url: String)(implicit optionalLogger:Option[Logger]=None)  extends DatafinitiError {
-  //    val message:String =s"call to $url failed => $exceptionMessage"
-  //    optionalLogger.foreach(_.error(message))
-  //  }
-  //
-  //  final case class UnexpectedDownloadStatus(status: Option[String], message: String, url: String)(implicit optionalLogger:Option[Logger]=None)  extends DatafinitiError {
-  //    val message:String =s"call to $url failed => $exceptionMessage"
-  //    optionalLogger.foreach(_.error(message))
-  //  }
-  //
-  //  final case class NoDownloadStatus(message: String, url: String)(implicit optionalLogger:Option[Logger]=None)  extends DatafinitiError {
-  //    val message:String =s"call to $url failed => $exceptionMessage"
-  //    optionalLogger.foreach(_.error(message))
-  //  }
-  //
-  //  final case class NoDownloadLinks(message: String, url: String)(implicit optionalLogger:Option[Logger]=None)  extends DatafinitiError {
-  //    val message:String =s"call to $url failed => $exceptionMessage"
-  //    optionalLogger.foreach(_.error(message))
-  //  }
+
+  final case class NoRedirectFromDownload(url: String)(implicit optionalLogger: Option[Logger] = None) extends DatafinitiError {
+    val message: String = s"No valid redirect found from $url response => Redirect 303 not found"
+    optionalLogger.foreach(_.error(message))
+  }
+
+  final case class UnexpectedDownloadStatus(status: String, data: String, url: String)(implicit optionalLogger: Option[Logger] = None) extends DatafinitiError {
+    val message: String = s"Unexpected download status $status in $url=> $data"
+    optionalLogger.foreach(_.error(message))
+  }
+
+  final case class NoDownloadStatus(data: String, url: String)(implicit optionalLogger: Option[Logger] = None) extends DatafinitiError {
+    val message: String = s"No status field => $data"
+    optionalLogger.foreach(_.error(message))
+  }
+
+  final case class WrappedException(t: Throwable, url: String)(implicit optionalLogger: Option[Logger] = None) extends DatafinitiError {
+    val message: String = t.getMessage
+    optionalLogger.foreach(_.error(message))
+  }
+
+  final case class NoDownloadLinks(data: String, url: String)(implicit optionalLogger: Option[Logger] = None) extends DatafinitiError {
+    val message: String = s"No download Links found from call to $url => $data"
+    optionalLogger.foreach(_.error(message))
+  }
+
 }

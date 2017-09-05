@@ -3,6 +3,7 @@ package com.datlinq.datafiniti
 import com.datlinq.datafiniti.config.DatafinitiAPIFormats.{CSV, JSON}
 import com.datlinq.datafiniti.config.DatafinitiAPITypes._
 import com.datlinq.datafiniti.config.DatafinitiAPIViews.{BusinessesAllBasic, ProductsAll}
+import com.datlinq.datafiniti.response.DatafinitiTypes.DatafinitiFuture
 import com.typesafe.config.{Config, ConfigFactory}
 import org.json4s._
 import org.scalatest._
@@ -65,30 +66,23 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
-  ignore("download") { apiv3 => {
+  test("downloadLinks") { apiv3 => {
 
-    apiv3.download(BusinessesAllBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON)
-    //    val compositeFuture = {
-    //      for {
-    //        future1 <- apiv3.download(BusinessesAllBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON)
-    //      //        future2 <- apiv3.query(ProductsAll, Some("non-existing"), Some(1), Some(false), JSON)
-    //      //        future3 <- apiv3.query(BusinessesAllBasic, Some("categories:hotels"), Some(1), Some(false), CSV)
-    //      } yield (future1)
-    //    }
-    //
-    //    val outputs = Await.result(compositeFuture, Duration.Inf)
+    val et: DatafinitiFuture[List[String]] = apiv3.downloadLinks(BusinessesAllBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON)
 
-    //    assert(outputs._1.isInstanceOf[Right[Throwable, JValue]])
-    //    assert(outputs._2.isInstanceOf[Left[Throwable, JValue]])
-    //    assert(outputs._3.isInstanceOf[Right[Throwable, JValue]])
-    //    assert(outputs._1.map(json => (json \ "estimated total").extract[Int]).getOrElse(0) > 10000)
-    //    assert(outputs._2.left.get.getMessage.contains("user does not have access to this view"))
+    val resultList = Await.result(et.value, Duration.Inf)
+
+
+    assert(resultList.isRight)
+    assert(resultList.map(_.length).getOrElse(0) > 0)
+    assert(resultList.map(_.count(_.contains("amazonaws"))).getOrElse(0) > 0)
+
   }
   }
 
-  test("safeUri") { apiv3 => {
-    assert(apiv3.safeUri("fffff" + apiv3.apiToken + "gggggg") === "fffffAAAXXXXXXXXXXXXgggggg")
-    assert(apiv3.safeUri("fffffgggggg") === "fffffgggggg")
+  test("safeUrl") { apiv3 => {
+    assert(apiv3.safeUrl("fffff" + apiv3.apiToken + "gggggg") === "fffffAAAXXXXXXXXXXXXgggggg")
+    assert(apiv3.safeUrl("fffffgggggg") === "fffffgggggg")
   }
   }
 

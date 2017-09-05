@@ -21,7 +21,7 @@ This is an open source wrapper for that API, maintained by [Datlinq](http://datl
 Add to your build.sbt
 
 ```scala
-libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.1"
+libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.2"
 ```
 
 Then add import statement
@@ -41,23 +41,35 @@ val apiv3 = DatafinitiAPIv3(apiKey)
 
 Now query the API
 
-Errors in the future or non-200 results are captured in the left part of the Either (Throwable)
+Errors in the future or non-200 results are captured in DatafinitiErrors
 
-Otherwise the result is parsed with json4s (even CSV requests, that return json with as CSV field) 
+Otherwise the result is parsed with json4s (even CSV requests, that return json with as CSV field)
+
+The async calls return an DatafinitiFuture[T] which are [EitherT](https://typelevel.org/cats/api/cats/data/EitherT.html)\[Future,DatafinitiError,JValue]\] (see cats library)
+
+This makes the Eithers in Futures composable in for comprehensions and such
 
 ```scala
-val response[Future[Either[Throwable,JValue]]] = apiv3.query(
+val response:DatafinitiFuture[JValue] = apiv3.query(
   apiView = BusinessesAllBasic, 
   query = Some("categories:hotels"), 
   numberOfRecords = Some(1), 
   download = Some(false), 
   format = JSON)
-
 ```
 
 Download flow
 
-@todo build this
+The download contains of multiple API calls first triggering the download, then redirect to polling API call untill the download is marked as COMPLETED afterwards redirecting to a similar API call to fetch the download URL's
+The method `downloadLinks` returns a List of Strings wrapped in a DatafinitiFuture
+
+```scala
+val response:DatafinitiFuture[List[String]] = apiv3.downloadLinks(
+    apiView = BusinessesAllBasic,
+    query = Some("""categories:hotels AND city:"Rotterdam""""),
+    format = JSON)
+```
+
 
 ### possible Formats
 
@@ -92,6 +104,7 @@ import com.datlinq.datafiniti.config.DatafinitiAPIViews._
 import org.json4s.JsonAST.JNothing
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import scala.concurrent.ExecutionContext.Implicits.global
 
 val apiKey = "..."
 val apiv3 = DatafinitiAPIv3(apiKey)
@@ -103,7 +116,7 @@ val response = apiv3.query(
   download = Some(false),
   format = JSON)
 
-val output = Await.result(response, Duration.Inf)
+val output = Await.result(response.value, Duration.Inf)
 
 val json = output.getOrElse(JNothing)
 ```
