@@ -19,7 +19,7 @@ import scala.concurrent.duration._
 class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
 
   type FixtureParam = DatafinitiAPIv3
-  implicit val json4sFormats = DefaultFormats
+  implicit val json4sFormats: DefaultFormats.type = DefaultFormats
 
   def withFixture(test: OneArgTest): Outcome = {
     implicit val config: Config = ConfigFactory.load()
@@ -45,27 +45,27 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
-  ignore("query") { apiv3 => {
-    val compositeFuture = {
-      for {
-        future1 <- apiv3.query(BusinessesAllBasic, Some("categories:hotels"), Some(1), Some(false), JSON)
-        future2 <- apiv3.query(ProductsAll, Some("non-existing"), Some(1), Some(false), JSON)
-        future3 <- apiv3.query(BusinessesAllBasic, Some("categories:hotels"), Some(1), Some(false), CSV)
-      } yield (future1, future2, future3)
-    }
+  test("query") { apiv3 => {
+    val compositeFuture = for {
+      f1 <- apiv3.query(BusinessesAllBasic, Some("categories:hotels"), Some(1), Some(false), JSON).value
+      f2 <- apiv3.query(ProductsAll, Some("non-existing"), Some(1), Some(false), JSON).value
+      f3 <- apiv3.query(BusinessesAllBasic, Some("categories:hotels"), Some(1), Some(false), CSV).value
+    } yield List(f1, f2, f3)
 
-    val outputs = Await.result(compositeFuture, Duration.Inf)
 
-    assert(outputs._1.isInstanceOf[Right[Throwable, JValue]])
-    assert(outputs._2.isInstanceOf[Left[Throwable, JValue]])
-    assert(outputs._3.isInstanceOf[Right[Throwable, JValue]])
-    assert(outputs._1.map(json => (json \ "estimated total").extract[Int]).getOrElse(0) > 10000)
-    assert(outputs._2.left.get.getMessage.contains("user does not have access to this view"))
+    val resultList = Await.result(compositeFuture, Duration.Inf)
+
+    assert(resultList.length == 3)
+    assert(resultList(0).isRight)
+    assert(resultList(1).isLeft)
+    assert(resultList(2).isRight)
+    assert(resultList(0).map(json => (json \ "estimated total").extract[Int]).getOrElse(0) > 10000)
+    assert(resultList(1).left.get.message.contains("user does not have access to this view"))
   }
   }
 
 
-  test("download") { apiv3 => {
+  ignore("download") { apiv3 => {
 
     apiv3.download(BusinessesAllBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON)
     //    val compositeFuture = {
