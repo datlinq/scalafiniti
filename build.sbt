@@ -56,7 +56,7 @@ publishTo := Some(
   if (isSnapshot.value)
     Opts.resolver.sonatypeSnapshots
   else
-    Opts.resolver.sonatypeReleases
+    Opts.resolver.sonatypeStaging
 )
 
 
