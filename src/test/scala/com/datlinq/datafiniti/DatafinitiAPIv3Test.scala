@@ -66,15 +66,17 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
 
 
   test("download") { apiv3 => {
-    val compositeFuture = {
-      for {
-        future1 <- apiv3.download(BusinessesAllBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON)
-      //        future2 <- apiv3.query(ProductsAll, Some("non-existing"), Some(1), Some(false), JSON)
-      //        future3 <- apiv3.query(BusinessesAllBasic, Some("categories:hotels"), Some(1), Some(false), CSV)
-      } yield (future1)
-    }
 
-    val outputs = Await.result(compositeFuture, Duration.Inf)
+    apiv3.download(BusinessesAllBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON)
+    //    val compositeFuture = {
+    //      for {
+    //        future1 <- apiv3.download(BusinessesAllBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON)
+    //      //        future2 <- apiv3.query(ProductsAll, Some("non-existing"), Some(1), Some(false), JSON)
+    //      //        future3 <- apiv3.query(BusinessesAllBasic, Some("categories:hotels"), Some(1), Some(false), CSV)
+    //      } yield (future1)
+    //    }
+    //
+    //    val outputs = Await.result(compositeFuture, Duration.Inf)
 
     //    assert(outputs._1.isInstanceOf[Right[Throwable, JValue]])
     //    assert(outputs._2.isInstanceOf[Left[Throwable, JValue]])

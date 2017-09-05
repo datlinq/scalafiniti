@@ -1,6 +1,6 @@
 package com.datlinq.datafiniti
 
-import java.util.concurrent.ScheduledThreadPoolExecutor
+import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
 
 import com.datlinq.datafiniti.config.DatafinitiAPIFormats._
 import com.datlinq.datafiniti.config.DatafinitiAPITypes._
@@ -14,6 +14,7 @@ import org.json4s.native.JsonMethods._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, Promise}
+import scala.util.{Failure, Success}
 import scalaj.http._
 
 
@@ -24,7 +25,7 @@ import scalaj.http._
 case class DatafinitiAPIv3(apiToken: String) extends DatafinitiAPI with LazyLogging {
 
   protected val VERSION = "v3"
-  implicit val json4sFormats = DefaultFormats
+  implicit val json4sFormats: DefaultFormats.type = DefaultFormats
 
 
   /**
@@ -100,7 +101,7 @@ case class DatafinitiAPIv3(apiToken: String) extends DatafinitiAPI with LazyLogg
   }
 
 
-  def download(apiView: APIView, query: Option[String] = None, format: APIFormat = JSON): Future[Either[Throwable, String]] = {
+  def download(apiView: APIView, query: Option[String] = None, format: APIFormat = JSON): Unit = { //: Future[Either[Throwable, String]] = {
     val uri = buildUrl(
       apiType = apiView.apiType,
       queryParts = List(
@@ -110,81 +111,140 @@ case class DatafinitiAPIv3(apiToken: String) extends DatafinitiAPI with LazyLogg
         "download" -> Some(true)
       ).toMap)
 
+
+    // Get polling URL
+
     /**
       * Extract redirect from 303 redirects and poll these
       *
       * @param response HttpResponse from original URL
       * @return Either an exception or a url to poll
       */
-    def parseRedirect(response: HttpResponse[String]): Either[Throwable, String] = {
+    def extractPollingUrl(response: HttpResponse[String]): Either[Throwable, String] = {
       (for {
         option <- response.headers.get("location")
         location <- option.headOption
       } yield location) match {
         case Some(path) => {
-          Right(s"$SCHEME://$DOMAIN$path")
+          val redirect = s"$SCHEME://$DOMAIN$path"
+          logger.error(s"Found redirect from ${safeUri(uri)} to => $redirect")
+          Right(redirect)
         }
         case None => {
-          val error = s"No valid redirect found from ${safeUri(uri)} => Redirect (303)"
+          val error = s"No valid redirect found from ${safeUri(uri)} response => Redirect (303)"
           logger.error(error)
           Left(new Exception(error))
         }
       }
     }
 
-    val scheduledExecutor = new ScheduledThreadPoolExecutor(1)
-    val p = Promise[List[String]]()
+    // Poll URL
 
+    /**
+      * Poll the url every 10 seconds and when download is ready (Complete) return the url to fetch the download link
+      *
+      * @param pollUrl         URL to poll (redirect from original request)
+      * @param pollingInterval seconds between each poll (as long as marked "Started")
+      * @return Either an Exception or the download info url
+      */
+    def pollForDownloadInfoUrl(pollUrl: String, pollingInterval: Int = 10): Future[Either[Throwable, String]] = {
 
-    //    def checkPollData(response:HttpResponse[String]):Either[Throwable, List[String]] = {
-    //
-    //    }
-    //
-    //
-    //    def checkForDownloadLinks(uri: String): Future[Option[List[String]]] = Future({
-    //      request(uri)(_ == 200, checkPollData).map(_ match {
-    //        case Right(res) => Some(res)
-    //        case Left(_) => None
-    //      }
-    //
-    //
-    //      val success = Random.nextDouble() <= 0.2
-    //      println(s"Call to checkForDownloadLinks => $success")
-    //      if (success) Some(List("link1", "link2")) else None
-    //    })
-    //
-    //    def pollForDownloadLinks(uri: String): Future[List[String]] = {
-    //      def scheduleDelayedPoll(p: Promise[List[String]]) = {
-    //        scheduledExecutor.schedule(new Runnable {
-    //          override def run() = poll(p)
-    //        },
-    //          10, TimeUnit.SECONDS)
-    //      }
-    //
-    //      def poll(p: Promise[List[String]]): Unit = {
-    //        checkForDownloadLinks(uri).onComplete {
-    //          case s: Success[Option[List[String]]] if s.value.isDefined  => p.success(s.value.get)
-    //          case f: Failure[_] => scheduleDelayedPoll(p)
-    //        }
-    //      }
-    //
-    //
-    //      poll(p)
-    //      p.future
-    //    }
+      val promiseStatus = Promise[Boolean]()
+      val scheduledExecutor = new ScheduledThreadPoolExecutor(1)
 
+      /**
+        * Reads the json request
+        *
+        * @param response Response from the pollUrl
+        * @return Either an Exception or status as ready ("Completed" => true, "Started" => false)
+        */
+      def checkDownloadCompleted(response: HttpResponse[String]): Either[Throwable, Boolean] = {
+        (parse(response.body) \\ "status").extractOpt[String] match {
+          case Some(status) if status.toUpperCase() == "COMPLETED" => Right(true)
+          case Some(status) if status.toUpperCase() == "STARTED" => Right(false)
+          case Some(status) => Left(new Exception(s"Unexpected download status $status => ${response.body}"))
+          case None => Left(new Exception(s"No status field => ${response.body}"))
+        }
+      }
 
-    //    val x:Int = pollForDownloadLinks
+      /**
+        * Poll the download page
+        *
+        * @return
+        */
+      def pollStatus(): Unit = {
+        logger.debug(s"Do poll for status")
+        request(pollUrl)(_ == 200, checkDownloadCompleted).onComplete {
+          case Success(Right(true)) => {
+            logger.debug(s"Download ready from ${safeUri(pollUrl)}")
+            promiseStatus.success(true)
+          }
+          case Success(Right(false)) => {
+            logger.debug(s"Download not ready yet from ${safeUri(pollUrl)}")
+            scheduleDelayedPoll()
+          }
+          case Success(Left(l: Throwable)) => {
+            logger.error(s"Check poll ${safeUri(pollUrl)} failed => ${l.getMessage}")
+            promiseStatus.failure(l)
+          }
+          case Failure(f) => {
+            logger.error(s"Polling failed to ${safeUri(pollUrl)}  => ${f.getMessage}")
+            promiseStatus.failure(f)
+          }
+        }
+      }
 
-    //    val result = Await.result(pollForDownloadLinks, Duration.Inf)
-    //    println(result)
+      def scheduleDelayedPoll() = {
+        logger.debug(s"Reschedule poll in $pollingInterval seconds")
+        scheduledExecutor.schedule(
+          new Runnable {
+            override def run() = pollStatus()
+          }, pollingInterval, TimeUnit.SECONDS)
+      }
+
+      pollStatus()
+      promiseStatus
+        .future
+        .map(_ => {
+          val resultUrl = pollUrl.replace("requests", "results")
+          logger.debug(s"Created resultsUrl $resultUrl from $pollUrl")
+          Right(pollUrl.replace("requests", "results"))
+        })
+        .recover({
+          case t: Throwable => {
+            logger.error(s"Promise to ${safeUri(pollUrl)} failed => ${t.getMessage}")
+            Left(t)
+          }
+        })
+    }
+
+    def extractDownloadLinks(response: HttpResponse[String]): Either[Throwable, List[String]] = {
+      (parse(response.body) \\ "url").extractOpt[List[String]] match {
+        case Some(urls) => {
+          logger.debug(s"Found download urls in ${safeUri(response.location.getOrElse("?"))} =? $urls")
+          Right(urls)
+        }
+        case None => {
+          val errorMessage = s"No urls field => ${response.body}"
+          logger.error(errorMessage)
+          Left(new Exception(errorMessage))
+        }
+      }
+    }
+
 
     val res = for {
-      result <- request(uri, followRedirect = false)(_ == 303, parseRedirect)
-      pollUri <- result.right
-      links <- pollForDownloadLinks(pollUri)
+      either1 <- request(uri, followRedirect = false)(_ == 303, extractPollingUrl)
+      pollUrl <- either1.right
+      //          error1 <- either1.left
+      either2 <- pollForDownloadInfoUrl(pollUrl, pollingInterval = 5)
+      downloadInfoUrl <- either2.right
+      //          error2 <- either2.left
+      either3 <- request(downloadInfoUrl)(_ == 200, extractDownloadLinks)
+      downloadLinks <- either3.right
+    //    error3 <- either3.left
 
-    } yield links
+    } yield downloadLinks
 
 
     val output = Await.result(res, Duration.Inf)
