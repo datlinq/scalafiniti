@@ -11,7 +11,7 @@ before_install:
 script:
 - sbt clean coverage test coverageReport coveralls
 after_success:
-- sbt "sonatypeOpen com.datlinq com.datlinq" +publishSigned sonatypeRelease
+- sbt "sonatypeOpen com.datlinq com.datlinq" +publishSigned sonatypeReleaseAll
 cache:
   directories:
   - $HOME/.ivy2

@@ -5,7 +5,7 @@ organization := "com.datlinq"
 //enablePlugins(GitVersioning)
 //git.baseVersion := "0.1"
 //version := "0.1.1"
-isSnapshot := true
+isSnapshot := false
 
 scalaVersion := "2.12.3"
 

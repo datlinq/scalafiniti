@@ -35,17 +35,17 @@ object DatafinitiError {
   }
 
   final case class UnexpectedDownloadStatus(status: String, data: String, url: String)(implicit optionalLogger: Option[Logger] = None) extends DatafinitiError {
-    val message: String = s"Unexpected download status $status in $url=> $data"
+    val message: String = s"Unexpected download status $status in $url => $data"
     optionalLogger.foreach(_.error(message))
   }
 
   final case class NoDownloadStatus(data: String, url: String)(implicit optionalLogger: Option[Logger] = None) extends DatafinitiError {
-    val message: String = s"No status field => $data"
+    val message: String = s"No status field in $url => $data"
     optionalLogger.foreach(_.error(message))
   }
 
   final case class WrappedException(t: Throwable, url: String)(implicit optionalLogger: Option[Logger] = None) extends DatafinitiError {
-    val message: String = t.getMessage
+    val message: String = s"$url: ${t.getMessage}"
     optionalLogger.foreach(_.error(message))
   }
 
