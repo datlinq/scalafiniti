@@ -76,7 +76,7 @@ case class DatafinitiAPIv3(apiToken: String) extends DatafinitiAPI with LazyLogg
           logger.debug(s"response from ${safeUrl(url)} => ${response.headers.map(kv => kv._1 + ": " + kv._2.mkString(",")).mkString(" | ")}")
           response.code match {
             case code if codeCheck(code) => successHandler(url, response)
-            case code => Left(DatafinitiError.WrongHttpResponseCode(response.code, response.body, safeUrl(url)))
+            case code => Left(DatafinitiError.WrongHttpResponseCode(code, response.body, safeUrl(url)))
           }
         })
         .recover {
@@ -136,49 +136,48 @@ case class DatafinitiAPIv3(apiToken: String) extends DatafinitiAPI with LazyLogg
 
     // Get polling URL
 
-    /**
-      * Extract redirect from 303 redirects and poll these
-      *
-      * @param url      requestDownloadUrl
-      * @param response HttpResponse from original URL
-      * @return Either an DatafinitiError or a url to poll
-      */
+    /*
+     * Extract redirect from 303 redirects and poll these
+     *
+     * @param url      requestDownloadUrl
+     * @param response HttpResponse from original URL
+     * @return Either an DatafinitiError or a url to poll
+     */
     def extractPollingUrl(url: String, response: HttpResponse[String]): DatafinitiResponse[String] = {
       (for {
         option <- response.headers.get("location")
         location <- option.headOption
       } yield location) match {
-        case Some(path) => {
+        case Some(path) =>
           val redirect = s"$SCHEME://$DOMAIN$path"
           logger.debug(s"Found redirect from ${safeUrl(url)} to => $redirect")
           Right(redirect)
-        }
         case None => Left(DatafinitiError.NoRedirectFromDownload(safeUrl(url)))
       }
     }
 
     // Poll URL
 
-    /**
-      * Poll the url every 10 seconds and when download is ready (Complete) return the url to fetch the download link
-      *
-      * @param pollUrl         URL to poll (redirect from original request)
-      * @param pollingInterval seconds between each poll (as long as marked "Started")
-      * @param ec              Execution context for futures
-      * @return EitherT[Future, DatafinitiError, String] with String being the dowloadInfoUrl
-      */
-    def pollForDownloadInfoUrl(pollUrl: String, pollingInterval: Int = 10)(implicit ec: ExecutionContext): DatafinitiFuture[String] = {
+    /*
+     * Poll the url every 10 seconds and when download is ready (Complete) return the url to fetch the download link
+     *
+     * @param pollUrl         URL to poll (redirect from original request)
+     * @param pollingInterval seconds between each poll (as long as marked "Started")
+     * @param ec              Execution context for futures
+     * @return EitherT[Future, DatafinitiError, String] with String being the dowloadInfoUrl
+     */
+    def pollForDownloadInfoUrl(pollUrl: String, pollingInterval: Int)(implicit ec: ExecutionContext): DatafinitiFuture[String] = {
 
       val promiseStatus = Promise[Boolean]()
       val scheduledExecutor = new ScheduledThreadPoolExecutor(1)
 
-      /**
-        * Reads the json request
-        *
-        * @param url      the pollUrl
-        * @param response Response from the pollUrl
-        * @return Either an DatafinitiError or status as ready ("Completed" => true, "Started" => false)
-        */
+      /*
+       * Reads the json request
+       *
+       * @param url      the pollUrl
+       * @param response Response from the pollUrl
+       * @return Either an DatafinitiError or status as ready ("Completed" => true, "Started" => false)
+       */
       def checkDownloadCompleted(url: String, response: HttpResponse[String]): DatafinitiResponse[Boolean] = {
         (parse(response.body) \\ "status").extractOpt[String] match {
           case Some(status) if status.toUpperCase() == "COMPLETED" => Right(true)
@@ -188,44 +187,41 @@ case class DatafinitiAPIv3(apiToken: String) extends DatafinitiAPI with LazyLogg
         }
       }
 
-      /**
-        * Poll the download page
-        * Updates the promiseStatus
-        *
-        * @param ec Execution context for futures
-        */
+      /*
+       * Poll the download page
+       * Updates the promiseStatus
+       *
+       * @param ec Execution context for futures
+       */
       def pollStatus()(implicit ec: ExecutionContext): Unit = {
         logger.debug(s"Do poll for status")
         request(pollUrl)(checkDownloadCompleted).value.onComplete {
-          case Success(Right(true)) => {
+          case Success(Right(true)) =>
             logger.debug(s"Download ready from ${safeUrl(pollUrl)}")
             promiseStatus.success(true)
-          }
-          case Success(Right(false)) => {
+          case Success(Right(false)) =>
             logger.debug(s"Download not ready yet from ${safeUrl(pollUrl)}")
             scheduleDelayedPoll()
-          }
-          case Success(Left(error: DatafinitiError)) => {
+          case Success(Left(error: DatafinitiError)) =>
             logger.error(s"Check poll ${error.url} failed => $error")
             promiseStatus.failure(error.exception)
-          }
-          case Failure(f) => {
+          case Failure(f) =>
             logger.error(s"Polling failed to ${safeUrl(pollUrl)}  => ${f.getMessage}")
             promiseStatus.failure(f)
-          }
+
         }
       }
 
-      /**
-        * Schedules a call to the pollStatus method in pollingInterval seconds
-        *
-        * @param ec Execution context for futures
-        */
+      /*
+       * Schedules a call to the pollStatus method in pollingInterval seconds
+       *
+       * @param ec Execution context for futures
+       */
       def scheduleDelayedPoll()(implicit ec: ExecutionContext) = {
         logger.debug(s"Reschedule poll in $pollingInterval seconds")
         scheduledExecutor.schedule(
           new Runnable {
-            override def run() = pollStatus()
+            override def run(): Unit = pollStatus()
           }, pollingInterval, TimeUnit.SECONDS)
       }
 
@@ -250,7 +246,7 @@ case class DatafinitiAPIv3(apiToken: String) extends DatafinitiAPI with LazyLogg
 
 
     // Extract download links
-    /**
+    /*
       * Extracts the download links from JSON
       *
       * @param url      downloadInfoUrl where to find downloads
