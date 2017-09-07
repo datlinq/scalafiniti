@@ -220,7 +220,7 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
       def pollStatus()(implicit ec: ExecutionContext): Unit = {
         logger.debug(s"Do poll for status")
         request(pollUrl)(checkDownloadCompleted).value.onComplete {
-          case Success(Right((true, percentageDone))) =>
+          case Success(Right((true, _))) =>
             logger.debug(s"Download ready from ${safeUrl(pollUrl)}")
             promiseStatus.success(true)
           case Success(Right((false, percentageDone))) =>
@@ -236,17 +236,20 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
         }
       }
 
+
       /*
        * Schedules a call to the pollStatus method in pollingInterval seconds
        *
        * @param ec Execution context for futures
        */
       def scheduleDelayedPoll()(implicit ec: ExecutionContext) = {
+        // $COVERAGE-OFF$No idea how to test
         logger.debug(s"Reschedule poll in $pollingInterval seconds")
         scheduledExecutor.schedule(
           new Runnable {
             override def run(): Unit = pollStatus()
           }, pollingInterval, TimeUnit.SECONDS)
+        // $COVERAGE-ON$
       }
 
       // Trigger first poll check

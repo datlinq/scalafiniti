@@ -21,9 +21,9 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
 
   type FixtureParam = DatafinitiAPIv3
   implicit val json4sFormats: DefaultFormats.type = DefaultFormats
+  implicit val config: Config = ConfigFactory.load()
 
   def withFixture(test: OneArgTest): Outcome = {
-    implicit val config: Config = ConfigFactory.load()
     val apiv3 = DatafinitiAPIv3()
     test(apiv3)
   }
@@ -112,7 +112,6 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
   }
 
   test("constructor with config") { apiv3 => {
-    val config: Config = ConfigFactory.load()
     val token = config.getString("datafinity.apiKey")
     val apiv3_2 = DatafinitiAPIv3(token)
 
@@ -120,10 +119,10 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
   }
   }
 
-  test("constructor with config 2") { apiv3 => {
-    val config: Config = ConfigFactory.load()
+  test("constructor with timeout") { apiv3 => {
+    implicit val config: Config = ConfigFactory.load()
     val token = config.getString("datafinity.apiKey")
-    val apiv3_2 = DatafinitiAPIv3(token, 3600)
+    val apiv3_2 = DatafinitiAPIv3(3600)
 
     assert(apiv3_2.apiToken === apiv3.apiToken)
     assert(apiv3_2.httpTimeoutSeconds === apiv3.httpTimeoutSeconds)
