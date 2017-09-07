@@ -104,21 +104,40 @@ import com.datlinq.datafiniti.config.DatafinitiAPIViews._
 import org.json4s.JsonAST.JNothing
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
-val apiKey = "..."
+
+
+val apiKey = "...."
 val apiv3 = DatafinitiAPIv3(apiKey)
 
-val response = apiv3.query(
-  apiView = BusinessesAllBasic,
-  query = Some("categories:hotels"),
-  numberOfRecords = Some(1),
+// query
+val futureEither = apiv3.query(
+  apiView = BusinessesAllNested,
+  query = Some("""categories:hotels AND city:"Den Helder""""),
+  numberOfRecords = Some(10),
   download = Some(false),
   format = JSON)
 
-val output = Await.result(response.value, Duration.Inf)
+val result = Await.result(futureEither.value, Duration.Inf)
 
-val json = output.getOrElse(JNothing)
+val json = result.getOrElse(JNothing)
+
+
+
+// download
+val futureEither2 = apiv3.downloadLinks(
+  apiView = BusinessesAllNested,
+  query = Some("""categories:hotels AND city:"Den Helder""""),
+  format = JSON
+)
+
+val result2 = Await.result(futureEither2.value, Duration.Inf)
+
+val links = result2.getOrElse(Nil)
+
+
 ```
 
 ## Compatibility
