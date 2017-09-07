@@ -81,6 +81,30 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
+  test("userInfo") { apiv3 => {
+
+    val et: DatafinitiFuture[JValue] = apiv3.userInfo()
+
+    val resultList = Await.result(et.value, Duration.Inf)
+
+    assert(resultList.isRight)
+    assert(resultList.map(json => (json \ "active").extract[Int]).getOrElse(0) === 1)
+  }
+  }
+
+
+  test("userInfoField") { apiv3 => {
+
+    val et: DatafinitiFuture[Option[Int]] = apiv3.userInfoField("active")
+
+    val resultList = Await.result(et.value, Duration.Inf)
+
+    assert(resultList.isRight)
+    assert(resultList.getOrElse(None) === Some(1))
+  }
+  }
+
+
   test("safeUrl") { apiv3 => {
     assert(apiv3.safeUrl("fffff" + apiv3.apiToken + "gggggg") === "fffffAAAXXXXXXXXXXXXgggggg")
     assert(apiv3.safeUrl("fffffgggggg") === "fffffgggggg")

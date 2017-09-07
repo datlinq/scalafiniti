@@ -23,8 +23,18 @@ object DatafinitiError {
     optionalLogger.foreach(_.error(message))
   }
 
+  final case class ExceededPreviewLimit(code: Int, data: String, url: String)(implicit optionalLogger: Option[Logger] = None) extends DatafinitiError {
+    val message: String = s"Exceeded preview limit in request ($code) from $url => $data"
+    optionalLogger.foreach(_.error(message))
+  }
+
+  final case class AccessDenied(code: Int, data: String, url: String)(implicit optionalLogger: Option[Logger] = None) extends DatafinitiError {
+    val message: String = s"Access Denied ($code) from $url => $data"
+    optionalLogger.foreach(_.error(message))
+  }
+
   final case class APICallFailed(exceptionMessage: String, url: String)(implicit optionalLogger: Option[Logger] = None) extends DatafinitiError {
-    val message: String = s"call to $url failed => $exceptionMessage"
+    val message: String = s"Call to $url failed => $exceptionMessage"
     optionalLogger.foreach(_.error(message))
   }
 

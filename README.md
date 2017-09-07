@@ -39,6 +39,9 @@ val apiKey = "..."
 val apiv3 = DatafinitiAPIv3(apiKey)
 ```
 
+
+#### Query
+
 Now query the API
 
 Errors in the future or non-200 results are captured in DatafinitiErrors
@@ -58,9 +61,9 @@ val response:DatafinitiFuture[JValue] = apiv3.query(
   format = JSON)
 ```
 
-Download flow
+#### Download
 
-The download contains of multiple API calls first triggering the download, then redirect to polling API call untill the download is marked as COMPLETED afterwards redirecting to a similar API call to fetch the download URL's
+The Download flow contains of multiple API calls first triggering the download, then redirect to polling API call untill the download is marked as COMPLETED afterwards redirecting to a similar API call to fetch the download URL's
 The method `downloadLinks` returns a List of Strings wrapped in a DatafinitiFuture
 
 ```scala
@@ -69,6 +72,24 @@ val response:DatafinitiFuture[List[String]] = apiv3.downloadLinks(
     query = Some("""categories:hotels AND city:"Rotterdam""""),
     format = JSON)
 ```
+
+
+#### User info
+User information, including access rights and remaining requests are accessed by the
+
+userInfo, returning the entire Json (or sub json if string was passed)
+
+```scala
+val et: DatafinitiFuture[JValue] = apiv3.userInfo()
+```
+
+and userInfoField, returning a specificly extracted value from user info (like  "available_downloads")
+
+
+```scala
+val et: DatafinitiFuture[Option[Long]] = apiv3.userInfoField("available_downloads")
+```
+
 
 
 ### possible Formats

@@ -38,6 +38,8 @@ import scalaj.http._
 case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 60) extends DatafinitiAPI with LazyLogging {
 
   protected val VERSION = "v3"
+  protected val API_URL = s"$SCHEME://$DOMAIN/$VERSION"
+
   implicit val json4sFormats: DefaultFormats.type = DefaultFormats
   implicit val loggerOpt: Option[Logger] = Some(logger)
 
@@ -51,7 +53,7 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 60) exten
     * @return url as String
     */
   private def buildUrl(apiType: APIType, queryParts: Map[String, Any]): String = {
-    val url = queryParts.foldLeft(s"$SCHEME://$DOMAIN/$VERSION/data/$apiType")((uri, keyVal) => {
+    val url = queryParts.foldLeft(s"$API_URL/data/$apiType")((uri, keyVal) => {
       uri & keyVal
     }).toString
 
@@ -85,6 +87,8 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 60) exten
           logger.debug(s"response from ${safeUrl(url)} => ${response.headers.map(kv => kv._1 + ": " + kv._2.mkString(",")).mkString(" | ")}")
           response.code match {
             case code if codeCheck(code) => successHandler(url, response)
+            case code if code == 401 => Left(DatafinitiError.AccessDenied(code, response.body, safeUrl(url)))
+            case code if code == 403 && response.body.contains("exceeds preview record limit") => Left(DatafinitiError.ExceededPreviewLimit(code, response.body, safeUrl(url)))
             case code => Left(DatafinitiError.WrongHttpResponseCode(code, response.body, safeUrl(url)))
           }
         })
@@ -119,7 +123,7 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 60) exten
       ).toMap)
 
 
-    request(url)((url, response) => Right(parse(response.body)))
+    request(url)((_, response) => Right(parse(response.body)))
   }
 
 
@@ -285,6 +289,43 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 60) exten
 
   }
 
+
+  /**
+    * Fetch the current user information as Json (JValue)
+    *
+    * @param specificField optionally parse a specific field out of json
+    * @param ec            Execution context for futures
+    * @return EitherT[Future, DatafinitiError, JValue] with json or parsed json user info
+    */
+  def userInfo(specificField: Option[String] = None)(implicit ec: ExecutionContext): DatafinitiFuture[JValue] = {
+    val url = s"$API_URL/users/$apiToken"
+
+
+    def userInfoResponse(body: String) = {
+      val json = parse(body)
+
+      specificField match {
+        case Some(field) => json \ field
+        case None => json
+      }
+    }
+
+    request(url)((_, response) => Right(userInfoResponse(response.body)))
+  }
+
+
+  /**
+    * Calls the userInfo method with a field and extracts the core value (T)
+    *
+    * @param field name of the extracted field
+    * @param ec    Execution context for futures
+    * @tparam T type to be extracted from json
+    * @return EitherT[Future, DatafinitiError, Option[T] with T wrapped in an option baed on the success of the json extraction
+    */
+  def userInfoField[T: Manifest](field: String)(implicit ec: ExecutionContext): DatafinitiFuture[Option[T]] = {
+    userInfo(Some(field)).map(
+      _.extractOpt[T])
+  }
 
   /**
     * Create a safe url without API token for logging purposes
