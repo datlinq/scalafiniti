@@ -33,6 +33,11 @@ object DatafinitiError {
     optionalLogger.foreach(_.error(message))
   }
 
+  final case class NoResultsDownload(code: Int, data: String, url: String)(implicit optionalLogger: Option[Logger] = None) extends DatafinitiError {
+    val message: String = s"No results for download ($code) from $url => $data"
+    optionalLogger.foreach(_.error(message))
+  }
+
   final case class APICallFailed(exceptionMessage: String, url: String)(implicit optionalLogger: Option[Logger] = None) extends DatafinitiError {
     val message: String = s"Call to $url failed => $exceptionMessage"
     optionalLogger.foreach(_.error(message))

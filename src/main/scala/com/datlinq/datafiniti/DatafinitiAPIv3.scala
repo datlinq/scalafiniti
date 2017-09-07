@@ -89,6 +89,7 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
             case code if codeCheck(code) => successHandler(url, response)
             case code if code == 401 => Left(DatafinitiError.AccessDenied(code, response.body, safeUrl(url)))
             case code if code == 403 && response.body.contains("exceeds preview record limit") => Left(DatafinitiError.ExceededPreviewLimit(code, response.body, safeUrl(url)))
+            case code if code == 400 && response.body.contains("numRequested cannot be <= 0") => Left(DatafinitiError.NoResultsDownload(code, response.body, safeUrl(url)))
             case code => Left(DatafinitiError.WrongHttpResponseCode(code, response.body, safeUrl(url)))
           }
         })
@@ -223,7 +224,7 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
             logger.debug(s"Download ready from ${safeUrl(pollUrl)}")
             promiseStatus.success(true)
           case Success(Right((false, percentageDone))) =>
-            logger.debug(percentageDone.map(p => f"$p%.2f %% ").getOrElse("") + s"Download not ready yet from ${safeUrl(pollUrl)}")
+            logger.debug(percentageDone.map(p => f"$p%.2f%% ").getOrElse("") + s"Download not ready yet from ${safeUrl(pollUrl)}")
             scheduleDelayedPoll()
           case Success(Left(error: DatafinitiError)) =>
             logger.error(s"Check poll ${error.url} failed => $error")

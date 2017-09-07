@@ -1,7 +1,7 @@
 package com.datlinq.datafiniti
 
 
-import com.datlinq.datafiniti.config.DatafinitiAPIFormats.{CSV, JSON}
+import com.datlinq.datafiniti.config.DatafinitiAPIFormats.CSV
 import com.datlinq.datafiniti.config.DatafinitiAPIViews.BusinessesAll
 import com.datlinq.datafiniti.response.DatafinitiTypes.DatafinitiFuture
 import com.typesafe.config.{Config, ConfigFactory}
@@ -31,9 +31,9 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
-  test("download just-eat.co.uk") { apiv3 => {
+  test("download") { apiv3 => {
 
-    val et: DatafinitiFuture[List[String]] = apiv3.downloadLinks(BusinessesAll, Some("""sourceURLs:*just-eat.co.uk*"""), JSON)
+    val et: DatafinitiFuture[List[String]] = apiv3.downloadLinks(BusinessesAll, Some("""sourceURLs:*lieferando.de*"""), CSV)
 
     val resultList = Await.result(et.value, Duration.Inf)
 
