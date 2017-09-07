@@ -1,8 +1,8 @@
 package com.datlinq.datafiniti
 
 
-import com.datlinq.datafiniti.config.DatafinitiAPIFormats.CSV
-import com.datlinq.datafiniti.config.DatafinitiAPIViews.BusinessesAllBasic
+import com.datlinq.datafiniti.config.DatafinitiAPIFormats.{CSV, JSON}
+import com.datlinq.datafiniti.config.DatafinitiAPIViews.BusinessesAll
 import com.datlinq.datafiniti.response.DatafinitiTypes.DatafinitiFuture
 import com.typesafe.config.{Config, ConfigFactory}
 import org.json4s._
@@ -31,9 +31,9 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
-  ignore("download just-eat.co.uk") { apiv3 => {
+  test("download just-eat.co.uk") { apiv3 => {
 
-    val et: DatafinitiFuture[List[String]] = apiv3.downloadLinks(BusinessesAllBasic, Some("""sourceURLs:*just-eat.co.uk*"""), CSV)
+    val et: DatafinitiFuture[List[String]] = apiv3.downloadLinks(BusinessesAll, Some("""sourceURLs:*just-eat.co.uk*"""), JSON)
 
     val resultList = Await.result(et.value, Duration.Inf)
 
@@ -44,10 +44,10 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
   }
   }
 
-  test("download just-eat.co.uk (2)") { apiv3 => {
+  ignore("download just-eat.co.uk (2)") { apiv3 => {
 
     val et: DatafinitiFuture[JValue] = apiv3.query(
-      apiView = BusinessesAllBasic,
+      apiView = BusinessesAll,
       query = Some("""sourceURLs:*just-eat.co.uk*"""),
       numberOfRecords = Some(30399),
       format = CSV,
@@ -76,7 +76,7 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
-  test("get user info") { apiv3 => {
+  ignore("get user info") { apiv3 => {
 
     val et: DatafinitiFuture[Option[Long]] = apiv3.userInfoField("available_downloads")
 

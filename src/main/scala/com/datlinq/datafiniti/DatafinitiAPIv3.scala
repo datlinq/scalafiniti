@@ -33,9 +33,9 @@ import scalaj.http._
   * Create new DatafinitiAPi Object
   *
   * @param apiToken           apitoken supplied by datafinity
-  * @param httpTimeoutSeconds default, 60 seconds
+  * @param httpTimeoutSeconds default, 3600 seconds
   */
-case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 60) extends DatafinitiAPI with LazyLogging {
+case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) extends DatafinitiAPI with LazyLogging {
 
   protected val VERSION = "v3"
   protected val API_URL = s"$SCHEME://$DOMAIN/$VERSION"
@@ -191,11 +191,21 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 60) exten
        * @param response Response from the pollUrl
        * @return Either an DatafinitiError or status as ready ("Completed" => true, "Started" => false)
        */
-      def checkDownloadCompleted(url: String, response: HttpResponse[String]): DatafinitiResponse[Boolean] = {
-        (parse(response.body) \\ "status").extractOpt[String] match {
-          case Some(status) if status.toUpperCase() == "COMPLETED" => Right(true)
-          case Some(status) if status.toUpperCase() == "STARTED" => Right(false)
-          case Some(status) => Left(DatafinitiError.UnexpectedDownloadStatus(status, response.body, safeUrl(url)))
+      def checkDownloadCompleted(url: String, response: HttpResponse[String]): DatafinitiResponse[(Boolean, Option[Double])] = {
+        val json = parse(response.body)
+        val status = (json \\ "status").extractOpt[String]
+        val total = (json \\ "numRequested").extractOpt[Double]
+        val downloaded = (json \\ "numDownloaded").extractOpt[Double]
+
+        val percentage: Option[Double] = (total, downloaded) match {
+          case (Some(t), Some(d)) => Some(d / t * 100.0)
+          case _ => None
+        }
+
+        status match {
+          case Some(s) if s.toUpperCase() == "COMPLETED" => Right((true, percentage))
+          case Some(s) if s.toUpperCase() == "STARTED" => Right((false, percentage))
+          case Some(s) => Left(DatafinitiError.UnexpectedDownloadStatus(s, response.body, safeUrl(url)))
           case None => Left(DatafinitiError.NoDownloadStatus(response.body, safeUrl(url)))
         }
       }
@@ -209,11 +219,11 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 60) exten
       def pollStatus()(implicit ec: ExecutionContext): Unit = {
         logger.debug(s"Do poll for status")
         request(pollUrl)(checkDownloadCompleted).value.onComplete {
-          case Success(Right(true)) =>
+          case Success(Right((true, percentageDone))) =>
             logger.debug(s"Download ready from ${safeUrl(pollUrl)}")
             promiseStatus.success(true)
-          case Success(Right(false)) =>
-            logger.debug(s"Download not ready yet from ${safeUrl(pollUrl)}")
+          case Success(Right((false, percentageDone))) =>
+            logger.debug(percentageDone.map(p => f"$p%.2f %% ").getOrElse("") + s"Download not ready yet from ${safeUrl(pollUrl)}")
             scheduleDelayedPoll()
           case Success(Left(error: DatafinitiError)) =>
             logger.error(s"Check poll ${error.url} failed => $error")
@@ -343,8 +353,8 @@ object DatafinitiAPIv3 {
   /**
     * Creates a DatafinitiAPIv3 instance based on config apikey defined in "datafinity.apiKey"
     *
-    * @param httpTimeoutSeconds default, 60 seconds
-    * @param config implicitly
+    * @param httpTimeoutSeconds default, 3600 seconds
+    * @param config             implicitly
     * @return DatafinitiAPIv3 object
     */
   def apply(httpTimeoutSeconds: Int)(implicit config: Config): DatafinitiAPIv3 = {

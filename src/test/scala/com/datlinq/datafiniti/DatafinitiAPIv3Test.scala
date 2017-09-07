@@ -123,7 +123,7 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
   test("constructor with config 2") { apiv3 => {
     val config: Config = ConfigFactory.load()
     val token = config.getString("datafinity.apiKey")
-    val apiv3_2 = DatafinitiAPIv3(token, 60)
+    val apiv3_2 = DatafinitiAPIv3(token, 3600)
 
     assert(apiv3_2.apiToken === apiv3.apiToken)
     assert(apiv3_2.httpTimeoutSeconds === apiv3.httpTimeoutSeconds)
