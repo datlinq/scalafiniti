@@ -57,10 +57,10 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
     val resultList = Await.result(compositeFuture, Duration.Inf)
 
     assert(resultList.length == 3)
-    assert(resultList(0).isRight)
+    assert(resultList.head.isRight)
     assert(resultList(1).isLeft)
     assert(resultList(2).isRight)
-    assert(resultList(0).map(json => (json \ "estimated total").extract[Int]).getOrElse(0) > 10000)
+    assert(resultList.head.map(json => (json \ "estimated total").extract[Int]).getOrElse(0) > 10000)
     assert(resultList(1).left.get.message.contains("user does not have access to this view"))
   }
   }
@@ -79,6 +79,7 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
 
   }
   }
+
 
   test("safeUrl") { apiv3 => {
     assert(apiv3.safeUrl("fffff" + apiv3.apiToken + "gggggg") === "fffffAAAXXXXXXXXXXXXgggggg")

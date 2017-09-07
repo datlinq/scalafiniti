@@ -41,6 +41,8 @@ scalacOptions ++= Seq(
 
 coverageEnabled in Test := true
 
+testOptions in Test := Seq(Tests.Filter(!_.endsWith("Ignore")))
+
 
 /* Publish */
 
