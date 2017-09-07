@@ -28,11 +28,19 @@ import scalaj.http._
   * Created by Tom Lous on 30/08/2017.
   * Copyright © 2017 Datlinq B.V..
   */
-case class DatafinitiAPIv3(apiToken: String) extends DatafinitiAPI with LazyLogging {
+
+/**
+  * Create new DatafinitiAPi Object
+  *
+  * @param apiToken           apitoken supplied by datafinity
+  * @param httpTimeoutSeconds default, 60 seconds
+  */
+case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 60) extends DatafinitiAPI with LazyLogging {
 
   protected val VERSION = "v3"
   implicit val json4sFormats: DefaultFormats.type = DefaultFormats
   implicit val loggerOpt: Option[Logger] = Some(logger)
+
 
 
   /**
@@ -68,6 +76,7 @@ case class DatafinitiAPIv3(apiToken: String) extends DatafinitiAPI with LazyLogg
       Future({
         logger.debug(s"request: ${safeUrl(url)}, followRedirect: $followRedirect")
         Http(url)
+          .timeout(httpTimeoutSeconds * 1000, httpTimeoutSeconds * 10000)
           .auth(apiToken, "")
           .option(HttpOptions.followRedirects(followRedirect))
           .asString
@@ -289,6 +298,17 @@ case class DatafinitiAPIv3(apiToken: String) extends DatafinitiAPI with LazyLogg
 }
 
 object DatafinitiAPIv3 {
+
+  /**
+    * Creates a DatafinitiAPIv3 instance based on config apikey defined in "datafinity.apiKey"
+    *
+    * @param httpTimeoutSeconds default, 60 seconds
+    * @param config implicitly
+    * @return DatafinitiAPIv3 object
+    */
+  def apply(httpTimeoutSeconds: Int)(implicit config: Config): DatafinitiAPIv3 = {
+    DatafinitiAPIv3(config.getString("datafinity.apiKey"), httpTimeoutSeconds)
+  }
 
   /**
     * Creates a DatafinitiAPIv3 instance based on config apikey defined in "datafinity.apiKey"
