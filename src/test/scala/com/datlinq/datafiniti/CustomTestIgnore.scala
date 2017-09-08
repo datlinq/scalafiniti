@@ -1,11 +1,15 @@
 package com.datlinq.datafiniti
 
 
+import java.io.{ByteArrayOutputStream, FileOutputStream}
+
 import com.datlinq.datafiniti.config.DatafinitiAPIFormats.{CSV, JSON}
-import com.datlinq.datafiniti.config.DatafinitiAPIViews.BusinessesAll
+import com.datlinq.datafiniti.config.DatafinitiAPIViews
+import com.datlinq.datafiniti.config.DatafinitiAPIViews.{BusinessesAll, BusinessesAllBasic}
 import com.datlinq.datafiniti.response.DatafinitiTypes.DatafinitiFuture
 import com.typesafe.config.{Config, ConfigFactory}
 import org.json4s._
+import org.json4s.native.JsonMethods._
 import org.scalatest._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -31,15 +35,33 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
-  test("download") { apiv3 => {
+  ignore("download") { apiv3 => {
 
-    //    val et: DatafinitiFuture[List[String]] = apiv3.downloadLinks(BusinessesAll, Some("""sourceURLs:*lieferando.de*"""), CSV)
-    val et: DatafinitiFuture[List[String]] = apiv3.downloadLinks(BusinessesAll, Some("""city:*gravenhage* OR city:"Den Haag" OR city:"The Hague""""), JSON)
-
+    val target = new FileOutputStream("/tmp/outputcsv.csv")
+    val et: DatafinitiFuture[Int] = apiv3.download(DatafinitiAPIViews.BusinessesAllNested, Some("""sourceURLs:lieferando.de"""), CSV)(target)
     val resultList = Await.result(et.value, Duration.Inf)
 
+    target.close()
 
     println(resultList)
+
+
+  }
+  }
+
+  test("download 2") { apiv3 => {
+
+    val stream = new ByteArrayOutputStream()
+    val et: DatafinitiFuture[Int] = apiv3.download(BusinessesAllBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON)(stream)
+    val resultCount = Await.result(et.value, Duration.Inf)
+
+    val lines = stream.toString.split("\n")
+    stream.close()
+
+    val numRecords = 3
+
+    println(resultCount)
+    println(lines.flatMap(json => (parse(json) \ "city").extractOpt[String]).filter(_ == "Den Helder").toList)
 
 
   }

@@ -1,11 +1,14 @@
 package com.datlinq.datafiniti
 
+import java.io.ByteArrayOutputStream
+
 import com.datlinq.datafiniti.config.DatafinitiAPIFormats.{CSV, JSON}
 import com.datlinq.datafiniti.config.DatafinitiAPITypes._
 import com.datlinq.datafiniti.config.DatafinitiAPIViews.{BusinessesAllBasic, ProductsAll}
 import com.datlinq.datafiniti.response.DatafinitiTypes.DatafinitiFuture
 import com.typesafe.config.{Config, ConfigFactory}
 import org.json4s._
+import org.json4s.native.JsonMethods.parse
 import org.scalatest._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -76,6 +79,24 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
     assert(resultList.isRight)
     assert(resultList.map(_.length).getOrElse(0) > 0)
     assert(resultList.map(_.count(_.contains("amazonaws"))).getOrElse(0) > 0)
+
+  }
+  }
+
+  test("download") { apiv3 => {
+
+    val stream = new ByteArrayOutputStream()
+    val et: DatafinitiFuture[Int] = apiv3.download(BusinessesAllBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON)(stream)
+    val resultCount = Await.result(et.value, Duration.Inf)
+
+    val lines = stream.toString.split("\n")
+    stream.close()
+
+    val numRecords = 3
+
+    assert(resultCount.right.getOrElse(-1) === numRecords)
+    assert(lines.length === numRecords)
+    assert(lines.flatMap(json => (parse(json) \ "city").extractOpt[String]).count(_ == "Den Helder") === numRecords)
 
   }
   }

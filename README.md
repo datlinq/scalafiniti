@@ -21,7 +21,7 @@ This is an open source wrapper for that API, maintained by [Datlinq](http://datl
 Add to your build.sbt
 
 ```scala
-libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.2.2"
+libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.2.3"
 ```
 
 Then add import statement
@@ -68,9 +68,19 @@ The method `downloadLinks` returns a List of Strings wrapped in a DatafinitiFutu
 
 ```scala
 val response:DatafinitiFuture[List[String]] = apiv3.downloadLinks(
-    apiView = BusinessesAllBasic,
+    apiView = BusinessesAllNested,
     query = Some("""categories:hotels AND city:"Rotterdam""""),
     format = JSON)
+```
+
+or download all downloads directly to a stream. Pass an outputstream to append lines, beware that resulting file may have records be out of order if there are multiple download files in the response.
+The returned integer contains the total count of all imported records
+
+```scala
+val response:DatafinitiFuture[Int] = apiv3.downloadLinks(
+    apiView = BusinessesAllNested,
+    query = Some("""categories:hotels AND city:"Rotterdam""""),
+    format = JSON)(stream)
 ```
 
 
@@ -126,6 +136,8 @@ import org.json4s.JsonAST.JNothing
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
+import java.io.FileOutputStream
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
@@ -147,7 +159,7 @@ val json = result.getOrElse(JNothing)
 
 
 
-// download
+// download links
 val futureEither2 = apiv3.downloadLinks(
   apiView = BusinessesAllNested,
   query = Some("""categories:hotels AND city:"Den Helder""""),
@@ -157,6 +169,20 @@ val futureEither2 = apiv3.downloadLinks(
 val result2 = Await.result(futureEither2.value, Duration.Inf)
 
 val links = result2.getOrElse(Nil)
+
+
+// download
+val stream = new FileOutputStream("/tmp/output.json")
+
+val futureEither3 = apiv3.downloadLinks(
+  apiView = BusinessesAllNested,
+  query = Some("""categories:hotels AND city:"Den Helder""""),
+  format = JSON
+)(stream)
+
+val result3 = Await.result(futureEither3.value, Duration.Inf)
+
+stream.close()
 
 
 ```

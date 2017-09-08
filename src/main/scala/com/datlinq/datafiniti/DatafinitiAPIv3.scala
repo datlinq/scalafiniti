@@ -1,5 +1,6 @@
 package com.datlinq.datafiniti
 
+import java.io.OutputStream
 import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
 
 import com.datlinq.datafiniti.config.DatafinitiAPIFormats._
@@ -13,14 +14,15 @@ import org.json4s._
 import org.json4s.native.JsonMethods._
 
 import scala.concurrent.Promise
-import scala.util.{Failure, Success}
+import scala.concurrent.duration.Duration
+import scala.util.{Failure, Success, Try}
 
 //import scala.concurrent.ExecutionContext.Implicits.global
 import cats.data._
 import cats.implicits._
 import com.datlinq.datafiniti.response.DatafinitiError
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent._
 import scalaj.http._
 
 
@@ -301,6 +303,47 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
       downloadLinks <- request(downloadInfoUrl)(extractDownloadLinks)
     } yield downloadLinks
 
+  }
+
+
+  /**
+    * Do query and stream the output to outputStream. !!Lines will be out of order!!
+    *
+    * @param apiView      The view of the data
+    * @param query        Filter of fields
+    * @param format       which data format you want to see. You can set it to JSON or CSV.
+    * @param outputStream To which the lines are appended
+    * @param ec           Execution context for futures
+    * @return EitherT[Future, DatafinitiError, Int]  where the int is the number of lines imported
+    */
+  def download(apiView: APIView, query: Option[String] = None, format: APIFormat = JSON)(outputStream: OutputStream)(implicit ec: ExecutionContext): DatafinitiFuture[Int] = {
+    val eitherLinksOrError = downloadLinks(apiView, query, format)
+    var counter = 0
+
+    eitherLinksOrError.map(_.map(url => {
+      Future {
+        logger.debug(s"Download from $url")
+        Http(url).timeout(httpTimeoutSeconds * 1000, httpTimeoutSeconds * 1000).execute(
+          inputStream => Try({
+            scala.io.Source.fromInputStream(inputStream).getLines().map(line => {
+              blocking {
+                counter = counter + 1
+                if (counter % 1000 == 0) logger.debug(s"Streamed $counter lines to outputstream")
+                outputStream.write((line + "\n").getBytes)
+              }
+              1
+            }).sum
+          }).toOption.getOrElse(0)
+        ).body
+      }
+    })).map(listFutures => {
+      logger.debug(s"Defined ${listFutures.size} futures to sequence")
+      val fileFutures = Future.sequence(listFutures).map(_.sum)
+      val total = Await.result(fileFutures, Duration.Inf)
+      logger.debug(s"Streamed total of $total lines to outputstream")
+      total
+    }
+    )
   }
 
 
