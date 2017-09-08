@@ -63,7 +63,7 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
     assert(resultList.head.isRight)
     assert(resultList(1).isLeft)
     assert(resultList(2).isRight)
-    assert(resultList.head.right.map(json => (json \ "estimated total").extract[Int]).getOrElse(0) > 10000)
+    assert(resultList.head.right.map(json => (json \ "estimated total").extract[Int]).right.getOrElse(0) > 10000)
     assert(resultList(1).left.get.message.contains("user does not have access to this view"))
   }
   }
