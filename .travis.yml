@@ -1,24 +1,48 @@
 language: scala
+
 scala:
-- 2.12.3
+  - 2.12.3
+
 jdk:
-- oraclejdk8
+  - oraclejdk8
+
 env:
-- LOGLEVEL=info
-before_install:
-- openssl aes-256-cbc -K $encrypted_391999303d86_key -iv $encrypted_391999303d86_iv -in project/gnupg/gpgring.tar.enc -out project/gnupg/gpgring.tar -d
-- tar -xf project/gnupg/gpgring.tar -C project/gnupg/
-script:
-- sbt clean coverage test coverageReport coveralls
-after_success:
-- sbt "sonatypeOpen com.datlinq com.datlinq" +publishSigned sonatypeReleaseAll
+  - LOGLEVEL=info
+
+matrix:
+  include:
+    - scala: 2.12.3
+      jdk: oraclejdk8
+    - scala: 2.11.11
+      jdk: oraclejdk8
+
 cache:
   directories:
-  - $HOME/.ivy2
-  - $HOME/.sbt
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt/boot
+    - $HOME/.sbt/launchers
+
+
+before_install:
+  - openssl aes-256-cbc -K $encrypted_391999303d86_key -iv $encrypted_391999303d86_iv -in project/gnupg/gpgring.tar.enc -out project/gnupg/gpgring.tar -d
+  - tar -xf project/gnupg/gpgring.tar -C project/gnupg/
+
+script:
+  - |
+    if [[ "$TRAVIS_SCALA_VERSION" = 2.12.* ]]; then
+      sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport coveralls
+    else
+      sbt ++$TRAVIS_SCALA_VERSION clean test
+    fi
+  - |
+    if [[ $(cat version.sbt) =~ "-SNAPSHOT" ]]; then
+      sbt ++$TRAVIS_SCALA_VERSION "sonatypeOpen com.datlinq com.datlinq" +publishSigned sonatypeReleaseAll
+    fi
+
 branches:
   only:
   - master
+
 notifications:
   slack:
     rooms:

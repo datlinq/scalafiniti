@@ -73,11 +73,11 @@ val response:DatafinitiFuture[List[String]] = apiv3.downloadLinks(
     format = JSON)
 ```
 
-or download all downloads directly to a stream. Pass an outputstream to append lines, beware that resulting file may have records be out of order if there are multiple download files in the response.
+or download all files directly to a stream. Pass an outputstream to append lines, beware that resulting file may have records be out of order if there are multiple download files in the response.
 The returned integer contains the total count of all imported records
 
 ```scala
-val response:DatafinitiFuture[Int] = apiv3.downloadLinks(
+val response:DatafinitiFuture[Int] = apiv3.download(
     apiView = BusinessesAllNested,
     query = Some("""categories:hotels AND city:"Rotterdam""""),
     format = JSON)(stream)
@@ -105,7 +105,7 @@ val et: DatafinitiFuture[Option[Long]] = apiv3.userInfoField("available_download
 ### possible Formats
 
 * `JSON`
-* `CSV` (still json result, but with one CSV field)
+* `CSV` (basic query still returns json result, but with one field filled with CSV data)
 
 ### possible API Views in v3
 
@@ -122,8 +122,9 @@ val et: DatafinitiFuture[Option[Long]] = apiv3.userInfoField("available_download
 
 ## History
 
-### Contributions
-- Tom Lous (@TomLous) 
+### The current maintainers (people who can help you) are:
+
+- Tom Lous ([@tomlous](https://github.com/TomLous))
 
 ## Sample
 

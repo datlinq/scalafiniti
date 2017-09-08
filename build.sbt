@@ -3,12 +3,29 @@ organization := "com.datlinq"
 
 
 //enablePlugins(GitVersioning)
-//git.baseVersion := "0.1"
-//version := "0.1.1"
-isSnapshot := false
+///* The BaseVersion setting represents the in-development (upcoming) version,
+// * as an alternative to SNAPSHOTS.
+// */
+//git.baseVersion := "0.2.4"
+//git.useGitDescribe := true
+//val ReleaseTag = """^v([\d\.]+)$""".r
+//git.gitTagToVersionNumber := {
+//  case ReleaseTag(v) => Some(v)
+//  case _ => None
+//}
+//
+//git.formattedShaVersion := {
+//  val suffix = git.makeUncommittedSignifierSuffix(git.gitUncommittedChanges.value, git.uncommittedSignifier.value)
+//
+//  git.gitHeadCommit.value map { _.substring(0, 7) } map { sha =>
+//    git.baseVersion.value + "-" + sha + suffix
+//  }
+//}
+isSnapshot := version.value endsWith "SNAPSHOT"
+
 
 scalaVersion := "2.12.3"
-
+crossScalaVersions := Seq("2.11.11", "2.12.3")
 
 /* Build */
 libraryDependencies ++= Seq(

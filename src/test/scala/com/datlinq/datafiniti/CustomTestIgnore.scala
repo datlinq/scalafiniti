@@ -35,10 +35,10 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
-  ignore("download") { apiv3 => {
+  test("download") { apiv3 => {
 
-    val target = new FileOutputStream("/tmp/outputcsv.csv")
-    val et: DatafinitiFuture[Int] = apiv3.download(DatafinitiAPIViews.BusinessesAllNested, Some("""sourceURLs:lieferando.de"""), CSV)(target)
+    val target = new FileOutputStream("/tmp/liegerando.de.csv")
+    val et: DatafinitiFuture[Int] = apiv3.download(DatafinitiAPIViews.BusinessesAll, Some("""sourceURLs:lieferando.de"""), JSON)(target)
     val resultList = Await.result(et.value, Duration.Inf)
 
     target.close()
@@ -49,7 +49,7 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
   }
   }
 
-  test("download 2") { apiv3 => {
+  ignore("download 2") { apiv3 => {
 
     val stream = new ByteArrayOutputStream()
     val et: DatafinitiFuture[Int] = apiv3.download(BusinessesAllBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON)(stream)
