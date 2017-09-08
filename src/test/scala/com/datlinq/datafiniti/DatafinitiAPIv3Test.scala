@@ -63,7 +63,7 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
     assert(resultList.head.isRight)
     assert(resultList(1).isLeft)
     assert(resultList(2).isRight)
-    assert(resultList.head.map(json => (json \ "estimated total").extract[Int]).getOrElse(0) > 10000)
+    assert(resultList.head.map(json => (json \ "estimated total").extract[Int]).right.getOrElse(0) > 10000)
     assert(resultList(1).left.get.message.contains("user does not have access to this view"))
   }
   }
@@ -77,8 +77,8 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
 
 
     assert(resultList.isRight)
-    assert(resultList.map(_.length).getOrElse(0) > 0)
-    assert(resultList.map(_.count(_.contains("amazonaws"))).getOrElse(0) > 0)
+    assert(resultList.map(_.length).right.getOrElse(0) > 0)
+    assert(resultList.map(_.count(_.contains("amazonaws"))).right.getOrElse(0) > 0)
 
   }
   }
@@ -109,7 +109,7 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
     val resultList = Await.result(et.value, Duration.Inf)
 
     assert(resultList.isRight)
-    assert(resultList.map(json => (json \ "active").extract[Int]).getOrElse(0) === 1)
+    assert(resultList.map(json => (json \ "active").extract[Int]).right.getOrElse(0) === 1)
   }
   }
 
@@ -121,7 +121,7 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
     val resultList = Await.result(et.value, Duration.Inf)
 
     assert(resultList.isRight)
-    assert(resultList.getOrElse(None) === Some(1))
+    assert(resultList.right.getOrElse(None) === Some(1))
   }
   }
 

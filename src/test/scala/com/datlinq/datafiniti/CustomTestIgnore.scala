@@ -58,7 +58,7 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
     val lines = stream.toString.split("\n")
     stream.close()
 
-    val numRecords = 3
+    //    val numRecords = 3
 
     println(resultCount)
     println(lines.flatMap(json => (parse(json) \ "city").extractOpt[String]).filter(_ == "Den Helder").toList)
@@ -79,7 +79,7 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
     val result = Await.result(et.value, Duration.Inf)
 
 
-    val response = result.getOrElse(JNothing)
+    val response = result.right.getOrElse(JNothing)
 
 
     println("Amount: " + (response \ "estimated total").extract[Long])
@@ -106,7 +106,7 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
     val resultList = Await.result(et.value, Duration.Inf)
 
     assert(resultList.isRight)
-    assert(resultList.getOrElse(None).getOrElse(0L) > 0)
+    assert(resultList.right.getOrElse(None).getOrElse(0L) > 0)
   }
   }
 

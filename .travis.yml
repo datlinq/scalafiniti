@@ -34,6 +34,8 @@ script:
     else
       sbt ++$TRAVIS_SCALA_VERSION clean test
     fi
+
+after_install:
   - |
     if [[ $(cat version.sbt) =~ "-SNAPSHOT" ]]; then
       sbt ++$TRAVIS_SCALA_VERSION "sonatypeOpen com.datlinq com.datlinq" +publishSigned sonatypeReleaseAll
