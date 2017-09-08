@@ -36,10 +36,7 @@ script:
     fi
 
 after_success:
-  - |
-    if [[ $(cat version.sbt) =~ "-SNAPSHOT" ]]; then
-      sbt ++$TRAVIS_SCALA_VERSION "sonatypeOpen com.datlinq com.datlinq" +publishSigned sonatypeReleaseAll
-    fi
+  - sbt ++$TRAVIS_SCALA_VERSION "sonatypeOpen com.datlinq com.datlinq" +publishSigned sonatypeRelease
 
 branches:
   only:
