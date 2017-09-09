@@ -25,7 +25,7 @@ isSnapshot := version.value endsWith "SNAPSHOT"
 
 
 scalaVersion := "2.12.3"
-crossScalaVersions := Seq("2.11.11", "2.12.3")
+crossScalaVersions := Seq("2.12.3", "2.11.11")
 
 /* Build */
 libraryDependencies ++= Seq(

@@ -2,7 +2,6 @@ language: scala
 
 scala:
   - 2.12.3
-  - 2.11.11
 
 jdk:
   - oraclejdk8
@@ -22,15 +21,10 @@ before_install:
   - tar -xf project/gnupg/gpgring.tar -C project/gnupg/
 
 script:
-  - |
-    if [[ "$TRAVIS_SCALA_VERSION" = 2.12.* ]]; then
-      sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport coveralls
-    else
-      sbt ++$TRAVIS_SCALA_VERSION clean test
-    fi
+  - sbt clean coverage +test coverageReport coveralls
 
 after_success:
-  - sbt ++$TRAVIS_SCALA_VERSION "sonatypeOpen com.datlinq com.datlinq" +publishSigned sonatypeRelease
+  - sbt "sonatypeOpen com.datlinq com.datlinq" +publishSigned sonatypeReleaseAll
 
 branches:
   only:
