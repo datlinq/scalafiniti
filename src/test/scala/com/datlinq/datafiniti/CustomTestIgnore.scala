@@ -35,10 +35,10 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
-  test("download") { apiv3 => {
+  ignore("download") { apiv3 => {
 
-    val target = new FileOutputStream("/tmp/liegerando.de.csv")
-    val et: DatafinitiFuture[Int] = apiv3.download(DatafinitiAPIViews.BusinessesAll, Some("""sourceURLs:lieferando.de"""), JSON)(target)
+    val target = new FileOutputStream("/tmp/justeat.co.uk.json")
+    val et: DatafinitiFuture[Int] = apiv3.download(DatafinitiAPIViews.BusinessesAll, Some("""sourceURLs:just-eat.co.uk"""), JSON)(target)
     val resultList = Await.result(et.value, Duration.Inf)
 
     target.close()
