@@ -21,7 +21,7 @@ This is an open source wrapper for that API, maintained by [Datlinq](http://datl
 Add to your build.sbt
 
 ```scala
-libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.2.4"
+libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.2.5"
 ```
 
 Then add import statement
@@ -64,23 +64,25 @@ val response:DatafinitiFuture[JValue] = apiv3.query(
 #### Download
 
 The Download flow contains of multiple API calls first triggering the download, then redirect to polling API call untill the download is marked as COMPLETED afterwards redirecting to a similar API call to fetch the download URL's
-The method `downloadLinks` returns a List of Strings wrapped in a DatafinitiFuture
+The method `downloadLinks` returns a List of Strings wrapped in a DatafinitiFuture.
 
 ```scala
 val response:DatafinitiFuture[List[String]] = apiv3.downloadLinks(
     apiView = BusinessesAllNested,
     query = Some("""categories:hotels AND city:"Rotterdam""""),
-    format = JSON)
+    format = JSON,
+    numRecords = None)
 ```
 
 or download all files directly to a stream. Pass an outputstream to append lines, beware that resulting file may have records be out of order if there are multiple download files in the response.
-The returned integer contains the total count of all imported records
+The returned integer contains the total count of all (or limited by numberOfRecords) imported records
 
 ```scala
 val response:DatafinitiFuture[Int] = apiv3.download(
     apiView = BusinessesAllNested,
     query = Some("""categories:hotels AND city:"Rotterdam""""),
-    format = JSON)(stream)
+    format = JSON,
+    numberOfRecords = None)(stream)
 ```
 
 
@@ -164,7 +166,8 @@ val json = result.getOrElse(JNothing)
 val futureEither2 = apiv3.downloadLinks(
   apiView = BusinessesAllNested,
   query = Some("""categories:hotels AND city:"Den Helder""""),
-  format = JSON
+  format = JSON,
+  numberOfRecords = None
 )
 
 val result2 = Await.result(futureEither2.value, Duration.Inf)
@@ -178,7 +181,8 @@ val stream = new FileOutputStream("/tmp/output.json")
 val futureEither3 = apiv3.downloadLinks(
   apiView = BusinessesAllNested,
   query = Some("""categories:hotels AND city:"Den Helder""""),
-  format = JSON
+  format = JSON,
+  numberOfRecords = None
 )(stream)
 
 val result3 = Await.result(futureEither3.value, Duration.Inf)
@@ -190,4 +194,4 @@ stream.close()
 
 ## Compatibility
 
-The code was build for scala 2.12 and for version v3 of the Dafaniti API
+The code was build for scala 2.11, 2.12 and for version v3 of the Dafaniti API

@@ -85,14 +85,14 @@ class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
 
   test("download") { apiv3 => {
 
+    val numRecords = 2
     val stream = new ByteArrayOutputStream()
-    val et: DatafinitiFuture[Int] = apiv3.download(BusinessesAllBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON)(stream)
+    val et: DatafinitiFuture[Int] = apiv3.download(BusinessesAllBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON, Some(numRecords))(stream)
     val resultCount = Await.result(et.value, Duration.Inf)
 
     val lines = stream.toString.split("\n")
     stream.close()
 
-    val numRecords = 3
 
     assert(resultCount.right.getOrElse(-1) === numRecords)
     assert(lines.length === numRecords)

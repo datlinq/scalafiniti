@@ -133,18 +133,20 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
   /**
     * Do query but returns urls for the download of the resulting dataset
     *
-    * @param apiView The view of the data
-    * @param query   Filter of fields
-    * @param format  which data format you want to see. You can set it to JSON or CSV.
-    * @param ec      Execution context for futures
+    * @param apiView         The view of the data
+    * @param query           Filter of fields
+    * @param format          which data format you want to see. You can set it to JSON or CSV.
+    * @param numberOfRecords how many records to return in the its response.
+    * @param ec              Execution context for futures
     * @return EitherT[Future, DatafinitiError, List[String]  with the list containing the download links
     */
-  def downloadLinks(apiView: APIView, query: Option[String] = None, format: APIFormat = JSON)(implicit ec: ExecutionContext): DatafinitiFuture[List[String]] = {
+  def downloadLinks(apiView: APIView, query: Option[String] = None, format: APIFormat = JSON, numberOfRecords: Option[Int] = None)(implicit ec: ExecutionContext): DatafinitiFuture[List[String]] = {
     val requestDownloadUrl = buildUrl(
       apiType = apiView.apiType,
       queryParts = List(
         "view" -> apiView,
         "format" -> format,
+        "records" -> numberOfRecords,
         "q" -> query,
         "download" -> Some(true)
       ).toMap)
@@ -309,15 +311,16 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
   /**
     * Do query and stream the output to outputStream. !!Lines will be out of order!!
     *
-    * @param apiView      The view of the data
-    * @param query        Filter of fields
-    * @param format       which data format you want to see. You can set it to JSON or CSV.
-    * @param outputStream To which the lines are appended
-    * @param ec           Execution context for futures
+    * @param apiView         The view of the data
+    * @param query           Filter of fields
+    * @param format          which data format you want to see. You can set it to JSON or CSV.
+    * @param numberOfRecords how many records to return in the its response.
+    * @param outputStream    To which the lines are appended
+    * @param ec              Execution context for futures
     * @return EitherT[Future, DatafinitiError, Int]  where the int is the number of lines imported
     */
-  def download(apiView: APIView, query: Option[String] = None, format: APIFormat = JSON)(outputStream: OutputStream)(implicit ec: ExecutionContext): DatafinitiFuture[Int] = {
-    val eitherLinksOrError = downloadLinks(apiView, query, format)
+  def download(apiView: APIView, query: Option[String] = None, format: APIFormat = JSON, numberOfRecords: Option[Int] = None)(outputStream: OutputStream)(implicit ec: ExecutionContext): DatafinitiFuture[Int] = {
+    val eitherLinksOrError = downloadLinks(apiView, query, format, numberOfRecords)
     var counter = 0
 
     eitherLinksOrError.map(_.map(url => {
