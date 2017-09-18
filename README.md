@@ -69,7 +69,7 @@ The method `downloadLinks` returns a List of Strings wrapped in a DatafinitiFutu
 ```scala
 val response:DatafinitiFuture[List[String]] = apiv3.downloadLinks(
     apiView = BusinessesAllNested,
-    query = Some("""categories:hotels AND city:"Rotterdam""""),
+    query = Some("""categories:hotels AND city:"Capelle aan den IJssel""""),
     format = JSON,
     numRecords = None)
 ```
@@ -80,7 +80,7 @@ The returned integer contains the total count of all (or limited by numberOfReco
 ```scala
 val response:DatafinitiFuture[Int] = apiv3.download(
     apiView = BusinessesAllNested,
-    query = Some("""categories:hotels AND city:"Rotterdam""""),
+    query = Some("""categories:hotels AND city:Rotterdam"""),
     format = JSON,
     numberOfRecords = None,
     sequential = false)(stream)
@@ -152,7 +152,7 @@ val apiv3 = DatafinitiAPIv3(apiKey)
 // query
 val futureEither = apiv3.query(
   apiView = BusinessesAllNested,
-  query = Some("""categories:hotels AND city:"Den Helder""""),
+  query = Some("""categories:hotels AND city:Bergschenhoek"""),
   numberOfRecords = Some(10),
   download = Some(false),
   format = JSON)
@@ -166,7 +166,7 @@ val json = result.getOrElse(JNothing)
 // download links
 val futureEither2 = apiv3.downloadLinks(
   apiView = BusinessesAllNested,
-  query = Some("""categories:hotels AND city:"Den Helder""""),
+  query = Some("""categories:hotels AND city:Lansingerland"""),
   format = JSON,
   numberOfRecords = None
 )
@@ -179,9 +179,9 @@ val links = result2.getOrElse(Nil)
 // download
 val stream = new FileOutputStream("/tmp/output.json")
 
-val futureEither3 = apiv3.downloadLinks(
+val futureEither3 = apiv3.download(
   apiView = BusinessesAllNested,
-  query = Some("""categories:hotels AND city:"Den Helder""""),
+  query = Some("""categories:hotels AND city:"Berkel en Rodenrijs""""),
   format = JSON,
   numberOfRecords = None,
   sequential = false
