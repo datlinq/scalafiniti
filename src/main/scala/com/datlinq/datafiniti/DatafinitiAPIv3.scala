@@ -316,38 +316,73 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
     * @param format          which data format you want to see. You can set it to JSON or CSV.
     * @param numberOfRecords how many records to return in the its response.
     * @param outputStream    To which the lines are appended
+    * @param sequential      If true, downlods will trigger after eacht other, not in parallel
     * @param ec              Execution context for futures
     * @return EitherT[Future, DatafinitiError, Int]  where the int is the number of lines imported
     */
-  def download(apiView: APIView, query: Option[String] = None, format: APIFormat = JSON, numberOfRecords: Option[Int] = None)(outputStream: OutputStream)(implicit ec: ExecutionContext): DatafinitiFuture[Int] = {
+  def download(apiView: APIView, query: Option[String] = None, format: APIFormat = JSON, numberOfRecords: Option[Int] = None, sequential: Boolean = false)(outputStream: OutputStream)(implicit ec: ExecutionContext): DatafinitiFuture[Int] = {
     val eitherLinksOrError = downloadLinks(apiView, query, format, numberOfRecords)
     var counter = 0
 
-    eitherLinksOrError.map(_.map(url => {
-      Future {
-        logger.debug(s"Download from $url")
-        Http(url).timeout(httpTimeoutSeconds * 1000, httpTimeoutSeconds * 1000).execute(
-          inputStream => Try({
-            scala.io.Source.fromInputStream(inputStream).getLines().map(line => {
+    def dataToStream(url: String): Int = {
+      logger.debug(s"Download from $url")
+      Http(url).timeout(httpTimeoutSeconds * 1000, httpTimeoutSeconds * 1000).execute(
+        inputStream => Try({
+          var markedFailed = false
+          var markedFailedContent: StringBuilder = new StringBuilder("Not valid JSON/CSV : \n")
+          val num = scala.io.Source.fromInputStream(inputStream).getLines().map(line => {
+            if (line.head == '<') {
+              markedFailed = true
+            }
+            if (!markedFailed) {
               blocking {
                 counter = counter + 1
                 if (counter % 1000 == 0) logger.debug(s"Streamed $counter lines to outputstream")
                 outputStream.write((line + "\n").getBytes)
               }
               1
-            }).sum
-          }).toOption.getOrElse(0)
-        ).body
-      }
-    })).map(listFutures => {
-      logger.debug(s"Defined ${listFutures.size} futures to sequence")
-      val fileFutures = Future.sequence(listFutures).map(_.sum)
-      val total = Await.result(fileFutures, Duration.Inf)
+            } else {
+              markedFailedContent.append(line)
+              0
+            }
+          }).sum
+
+          if (markedFailed) {
+            throw new Exception("Not valid JSON/CSV :" + markedFailedContent.toString())
+          }
+
+          num
+        }) match {
+          case Success(x) => x
+          case Failure(t) =>
+            logger.error(s"Failed download from $url: ${t.getMessage}")
+            0
+        }
+      ).body
+    }
+
+    if (sequential) {
+      val total = eitherLinksOrError.map(_.map(url => dataToStream(url)).sum)
       logger.debug(s"Streamed total of $total lines to outputstream")
       total
+
+    } else {
+      eitherLinksOrError.map(_.map(url => {
+        Future {
+          dataToStream(url)
+        }
+      })).map(listFutures => {
+        logger.debug(s"Defined ${listFutures.size} futures to sequence")
+        val fileFutures = Future.sequence(listFutures).map(_.sum)
+        val total = Await.result(fileFutures, Duration.Inf)
+        logger.debug(s"Streamed total of $total lines to outputstream")
+        total
+      })
     }
-    )
+
   }
+
+
 
 
   /**

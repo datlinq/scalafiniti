@@ -21,7 +21,7 @@ This is an open source wrapper for that API, maintained by [Datlinq](http://datl
 Add to your build.sbt
 
 ```scala
-libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.2.5"
+libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.2.6"
 ```
 
 Then add import statement
@@ -74,7 +74,7 @@ val response:DatafinitiFuture[List[String]] = apiv3.downloadLinks(
     numRecords = None)
 ```
 
-or download all files directly to a stream. Pass an outputstream to append lines, beware that resulting file may have records be out of order if there are multiple download files in the response.
+or download all files directly to a stream. Pass an outputstream to append lines, beware that resulting file may have records be out of order if there are multiple download files in the response, to prevent this set sequential to true (will be slower).
 The returned integer contains the total count of all (or limited by numberOfRecords) imported records
 
 ```scala
@@ -82,7 +82,8 @@ val response:DatafinitiFuture[Int] = apiv3.download(
     apiView = BusinessesAllNested,
     query = Some("""categories:hotels AND city:"Rotterdam""""),
     format = JSON,
-    numberOfRecords = None)(stream)
+    numberOfRecords = None,
+    sequential = false)(stream)
 ```
 
 
@@ -182,7 +183,8 @@ val futureEither3 = apiv3.downloadLinks(
   apiView = BusinessesAllNested,
   query = Some("""categories:hotels AND city:"Den Helder""""),
   format = JSON,
-  numberOfRecords = None
+  numberOfRecords = None,
+  sequential = false
 )(stream)
 
 val result3 = Await.result(futureEither3.value, Duration.Inf)
