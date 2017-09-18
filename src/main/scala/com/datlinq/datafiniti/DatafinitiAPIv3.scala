@@ -324,12 +324,17 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
     val eitherLinksOrError = downloadLinks(apiView, query, format, numberOfRecords)
     var counter = 0
 
+    /*
+      * Read data from url and append to outputstream
+      * @param url to download
+      * @return number of lines processed (Int)
+      */
     def dataToStream(url: String): Int = {
       logger.debug(s"Download from $url")
       Http(url).timeout(httpTimeoutSeconds * 1000, httpTimeoutSeconds * 1000).execute(
         inputStream => Try({
           var markedFailed = false
-          var markedFailedContent: StringBuilder = new StringBuilder("Not valid JSON/CSV : \n")
+          val markedFailedContent: StringBuilder = new StringBuilder("Not valid JSON/CSV : \n")
           val num = scala.io.Source.fromInputStream(inputStream).getLines().map(line => {
             if (line.head == '<') {
               markedFailed = true
