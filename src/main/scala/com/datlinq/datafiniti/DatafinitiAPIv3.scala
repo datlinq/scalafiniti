@@ -15,6 +15,7 @@ import org.json4s.native.JsonMethods._
 
 import scala.concurrent.Promise
 import scala.concurrent.duration.Duration
+import scala.io.Codec
 import scala.util.{Failure, Success, Try}
 
 //import scala.concurrent.ExecutionContext.Implicits.global
@@ -331,6 +332,7 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
       */
     def dataToStream(url: String): Int = {
       logger.debug(s"Download from $url")
+      implicit val codec: Codec = Codec.UTF8 // @todo check if this works
       Http(url).timeout(httpTimeoutSeconds * 1000, httpTimeoutSeconds * 1000).execute(
         inputStream => Try({
           var markedFailed = false
