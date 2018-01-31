@@ -37,7 +37,7 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
     val token = ""
 
     def invoke(apiType: APIType, queryParts: Map[String, Any]): String = {
-      apiv4.invokePrivate(buildUrl(apiType, queryParts)).replace(apiv4.apiToken + ":@", token)
+      apiv4.invokePrivate(buildUrl(apiType, queryParts)).replace(apiv4 + ":@", token)
     }
 
     assert(invoke(Businesses, Map.empty[String, Any]) === s"https://api.datafiniti.co/v4/data/businesses")
@@ -143,17 +143,15 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
-  test("safeUrl") { apiv4 => {
-    assert(apiv4.safeUrl("fffff" + apiv4.apiToken + "gggggg") === "fffffAAAXXXXXXXXXXXXgggggg")
-    assert(apiv4.safeUrl("fffffgggggg") === "fffffgggggg")
-  }
-  }
+
 
   test("constructor with config") { apiv4 => {
-    val token = config.getString("datafinity.apiKey")
-    val apiv4_2 = DatafinitiAPIv4(token)
+    val email = config.getString("datafinity.email")
+    val password = config.getString("datafinity.password")
+    val apiv4_2 = DatafinitiAPIv4(email, password)
 
-    assert(apiv4_2.apiToken === apiv4.apiToken)
+    assert(apiv4_2.email === apiv4.email)
+    assert(apiv4_2.password === apiv4.password)
   }
   }
 
@@ -161,7 +159,8 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
     implicit val config: Config = ConfigFactory.load()
     val apiv4_2 = DatafinitiAPIv4(3600)
 
-    assert(apiv4_2.apiToken === apiv4.apiToken)
+    assert(apiv4_2.email === apiv4.email)
+    assert(apiv4_2.password === apiv4.password)
     assert(apiv4_2.httpTimeoutSeconds === apiv4.httpTimeoutSeconds)
 
 

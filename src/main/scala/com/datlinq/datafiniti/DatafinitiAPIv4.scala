@@ -12,9 +12,9 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.{LazyLogging, Logger}
 import org.json4s._
 import org.json4s.native.JsonMethods._
+import org.json4s.native.Serialization._
 
 import scala.concurrent.Promise
-import scala.concurrent.duration.Duration
 import scala.io.Codec
 import scala.util.{Failure, Success, Try}
 
@@ -34,16 +34,56 @@ import scalaj.http._
 /**
   * Create new DatafinitiAPi Object
   *
-  * @param apiToken           apitoken supplied by datafinity
+  * @param email              account email supplied by datafinity
+  * @param password           password email supplied by datafinity
   * @param httpTimeoutSeconds default, 3600 seconds
   */
-case class DatafinitiAPIv4(apiToken: String, httpTimeoutSeconds: Int = 3600) extends DatafinitiAPI with LazyLogging {
+case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: Int = 3600)(implicit ec: ExecutionContext) extends DatafinitiAPI with LazyLogging {
+
+  import scala.concurrent.duration._
+  //  import scala.concurrent.ExecutionContext.Implicits.global
 
   protected val VERSION = "v4"
   protected val API_URL = s"$SCHEME://$DOMAIN/$VERSION"
 
   implicit val json4sFormats: DefaultFormats.type = DefaultFormats
   implicit val loggerOpt: Option[Logger] = Some(logger)
+
+
+  private case class AuthAccessToken(expiresDefault: Int = 120)(implicit ec: ExecutionContext) {
+    val authUrl = s"$API_URL/auth"
+
+    private case class AuthAccessTokenFetcherBody(email: String, password: String)
+
+    private case class AccessToken(token: String) {
+      val deadline: Deadline = expiresDefault seconds fromNow
+      Future(Await.ready(Promise().future, deadline.timeLeft)) onComplete (_ => {
+        at = AccessToken(fetchToken)
+      })
+    }
+
+
+    private def fetchToken(implicit ec: ExecutionContext) = {
+      Await.result(post(authUrl, Some(AuthAccessTokenFetcherBody(email, password)), accessToken = None)((_, response) =>
+        Right((parse(response.body) \ "token").extract[String])
+      ).value, httpTimeoutSeconds seconds) match {
+        case Right(token) => token
+        case Left(t) =>
+          logger.error(t.toString)
+          ""
+      }
+    }
+
+
+    @volatile private var at = AccessToken(fetchToken)
+
+    def accessToken: String = at.token
+
+    override def toString: String = accessToken
+  }
+
+
+  private lazy val currentAccessToken = AuthAccessToken()
 
 
   /**
@@ -58,10 +98,13 @@ case class DatafinitiAPIv4(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
       uri & keyVal
     }).toString
 
-    logger.debug("buildUrl: " + safeUrl(url))
+    logger.debug("buildUrl: " + url)
 
     url
   }
+
+
+  //  private def auth()
 
   /**
     * Make call to url with Datafiniti authentication
@@ -74,33 +117,102 @@ case class DatafinitiAPIv4(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
     * @tparam T Type of return parameter returned by successHandler
     * @return EitherT[Future, DatafinitiError, T]
     */
-  private def request[T](url: String, followRedirect: Boolean = true)(successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200)(implicit ec: ExecutionContext): DatafinitiFuture[T] = {
+  private def get[T](url: String, followRedirect: Boolean = true, accessToken: Option[AuthAccessToken] = Some(currentAccessToken))(successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200)(implicit ec: ExecutionContext): DatafinitiFuture[T] = {
+    //    EitherT(
+    //      Future({
+    //        logger.debug(s"get: ${url}, followRedirect: $followRedirect")
+
+
+    val http = Http(url)
+          .timeout(httpTimeoutSeconds * 1000, httpTimeoutSeconds * 10000)
+      .header("Authorization", s"Bearer $accessToken")
+          .option(HttpOptions.followRedirects(followRedirect))
+
+    implicit val sh = successHandler
+    implicit val cc = codeCheck
+
+
+    call[T](url, s"get: $url, followRedirect: $followRedirect", optionallyAddAuthorizationBearer(http, accessToken))
+    //          .asString
+    //      })
+    //        .map(response => {
+    //          logger.debug(s"response from ${url} => ${response.headers.map(kv => kv._1 + ": " + kv._2.mkString(",")).mkString(" | ")}")
+    //          response.code match {
+    //            case code if codeCheck(code) => successHandler(url, response)
+    //            case code if code == 401 => Left(DatafinitiError.AccessDenied(code, response.body, url))
+    //            case code if code == 403 && response.body.contains("exceeds preview record limit") => Left(DatafinitiError.ExceededPreviewLimit(code, response.body, url))
+    //            case code if code == 400 && response.body.contains("numRequested cannot be <= 0") => Left(DatafinitiError.NoResultsDownload(code, response.body, url))
+    //            case code => Left(DatafinitiError.WrongHttpResponseCode(code, response.body, url))
+    //          }
+    //        })
+    //        .recover {
+    //          // $COVERAGE-OFF$Not sure how to test this
+    //          case t: Throwable => Left(DatafinitiError.APICallFailed(t.getMessage, url))
+    //          // $COVERAGE-ON$
+    //        }
+    //    )
+  }
+
+
+  /**
+    * Make call to url with Datafiniti authentication
+    *
+    * @param url            url to call
+    * @param followRedirect boolean for choosing to follow the call in case of 30x
+    * @param codeCheck      method that validates the call based on httpresponse code, default 200 ok
+    * @param successHandler convert the url & responsebody to appropriate value of type T wrapped in Either[DatafinitiError, T]
+    * @param ec             Execution context for futures
+    * @tparam T Type of return parameter returned by successHandler
+    * @return EitherT[Future, DatafinitiError, T]
+    */
+  private def post[T, D <: AnyRef : Manifest](url: String, data: Option[D], followRedirect: Boolean = true, accessToken: Option[AuthAccessToken] = Some(currentAccessToken))(successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200)(implicit ec: ExecutionContext): DatafinitiFuture[T] = {
+
+    implicit val sh = successHandler
+    implicit val cc = codeCheck
+
+    val http = Http(url)
+      .timeout(httpTimeoutSeconds * 1000, httpTimeoutSeconds * 10000)
+      .option(HttpOptions.followRedirects(followRedirect))
+      .postData(data.map(d => write(d)).getOrElse(""))
+
+    call[T](url, s"post: $url, data: $data, followRedirect: $followRedirect", optionallyAddAuthorizationBearer(http, accessToken))
+  }
+
+  private def call[T](url: String, logString: String, http: HttpRequest)(implicit successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200, ec: ExecutionContext): DatafinitiFuture[T] = {
     EitherT(
       Future({
-        logger.debug(s"request: ${safeUrl(url)}, followRedirect: $followRedirect")
-        Http(url)
-          .timeout(httpTimeoutSeconds * 1000, httpTimeoutSeconds * 10000)
-          .auth(apiToken, "")
-          .option(HttpOptions.followRedirects(followRedirect))
-          .asString
+        logger.debug(logString)
+        http.asString
       })
-        .map(response => {
-          logger.debug(s"response from ${safeUrl(url)} => ${response.headers.map(kv => kv._1 + ": " + kv._2.mkString(",")).mkString(" | ")}")
-          response.code match {
-            case code if codeCheck(code) => successHandler(url, response)
-            case code if code == 401 => Left(DatafinitiError.AccessDenied(code, response.body, safeUrl(url)))
-            case code if code == 403 && response.body.contains("exceeds preview record limit") => Left(DatafinitiError.ExceededPreviewLimit(code, response.body, safeUrl(url)))
-            case code if code == 400 && response.body.contains("numRequested cannot be <= 0") => Left(DatafinitiError.NoResultsDownload(code, response.body, safeUrl(url)))
-            case code => Left(DatafinitiError.WrongHttpResponseCode(code, response.body, safeUrl(url)))
-          }
-        })
-        .recover {
-          // $COVERAGE-OFF$Not sure how to test this
-          case t: Throwable => Left(DatafinitiError.APICallFailed(t.getMessage, safeUrl(url)))
-          // $COVERAGE-ON$
-        }
+        .map(response => responseHandler(url, response))
+        .recover(recoverHandler(url))
     )
   }
+
+  private def responseHandler[T](url: String, response: HttpResponse[String])(implicit successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200): DatafinitiResponse[T] = {
+    logger.debug(s"response from $url => ${response.headers.map(kv => kv._1 + ": " + kv._2.mkString(",")).mkString(" | ")}")
+    response.code match {
+      case code if codeCheck(code) => successHandler(url, response)
+      case code if code == 401 => Left(DatafinitiError.AccessDenied(code, response.body, url))
+      case code if code == 403 && response.body.contains("exceeds preview record limit") => Left(DatafinitiError.ExceededPreviewLimit(code, response.body, url))
+      case code if code == 400 && response.body.contains("numRequested cannot be <= 0") => Left(DatafinitiError.NoResultsDownload(code, response.body, url))
+      case code => Left(DatafinitiError.WrongHttpResponseCode(code, response.body, url))
+    }
+  }
+
+  private def recoverHandler[T](url: String): PartialFunction[Throwable, DatafinitiResponse[T]] = {
+    // $COVERAGE-OFF$Not sure how to test this
+    case t: Throwable => Left(DatafinitiError.APICallFailed(t.getMessage, url))
+    // $COVERAGE-ON$
+  }
+
+  private def optionallyAddAuthorizationBearer(http: HttpRequest, authAccessToken: Option[AuthAccessToken] = None): HttpRequest = {
+    authAccessToken match {
+      case Some(accessToken) => http.header("Authorization", s"Bearer $accessToken")
+      case None => http
+    }
+  }
+
 
   /**
     * Queries datafinity
@@ -125,7 +237,7 @@ case class DatafinitiAPIv4(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
       ).toMap)
 
 
-    request(url)((_, response) => Right(parse(response.body)))
+    get(url)((_, response) => Right(parse(response.body)))
   }
 
 
@@ -167,9 +279,9 @@ case class DatafinitiAPIv4(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
       } yield location) match {
         case Some(path) =>
           val redirect = s"$SCHEME://$DOMAIN$path"
-          logger.debug(s"Found redirect from ${safeUrl(url)} to => $redirect")
+          logger.debug(s"Found redirect from ${url} to => $redirect")
           Right(redirect)
-        case None => Left(DatafinitiError.NoRedirectFromDownload(safeUrl(url)))
+        case None => Left(DatafinitiError.NoRedirectFromDownload(url))
       }
     }
 
@@ -209,8 +321,8 @@ case class DatafinitiAPIv4(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
         status match {
           case Some(s) if s.toUpperCase() == "COMPLETED" => Right((true, percentage))
           case Some(s) if s.toUpperCase() == "STARTED" => Right((false, percentage))
-          case Some(s) => Left(DatafinitiError.UnexpectedDownloadStatus(s, response.body, safeUrl(url)))
-          case None => Left(DatafinitiError.NoDownloadStatus(response.body, safeUrl(url)))
+          case Some(s) => Left(DatafinitiError.UnexpectedDownloadStatus(s, response.body, url))
+          case None => Left(DatafinitiError.NoDownloadStatus(response.body, url))
         }
       }
 
@@ -222,18 +334,18 @@ case class DatafinitiAPIv4(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
        */
       def pollStatus()(implicit ec: ExecutionContext): Unit = {
         logger.debug(s"Do poll for status")
-        request(pollUrl)(checkDownloadCompleted).value.onComplete {
+        get(pollUrl)(checkDownloadCompleted).value.onComplete {
           case Success(Right((true, _))) =>
-            logger.debug(s"Download ready from ${safeUrl(pollUrl)}")
+            logger.debug(s"Download ready from $pollUrl")
             promiseStatus.success(true)
           case Success(Right((false, percentageDone))) =>
-            logger.debug(percentageDone.map(p => f"$p%.2f%% ").getOrElse("") + s"Download not ready yet from ${safeUrl(pollUrl)}")
+            logger.debug(percentageDone.map(p => f"$p%.2f%% ").getOrElse("") + s"Download not ready yet from $pollUrl")
             scheduleDelayedPoll()
           case Success(Left(error: DatafinitiError)) =>
             logger.error(s"Check poll ${error.url} failed => $error")
             promiseStatus.failure(error.exception)
           case Failure(f) =>
-            logger.error(s"Polling failed to ${safeUrl(pollUrl)}  => ${f.getMessage}")
+            logger.error(s"Polling failed to $pollUrl  => ${f.getMessage}")
             promiseStatus.failure(f)
 
         }
@@ -288,20 +400,20 @@ case class DatafinitiAPIv4(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
       val urls = json.children.flatMap(_.extractOpt[String])
 
       if (urls.nonEmpty) {
-        logger.debug(s"Found download urls in ${safeUrl(url)} => $urls")
+        logger.debug(s"Found download urls in ${url} => $urls")
         Right(urls)
       }
       else {
-        Left(DatafinitiError.NoDownloadLinks(response.body, safeUrl(url)))
+        Left(DatafinitiError.NoDownloadLinks(response.body, url))
       }
     }
 
 
     // Execute all the download steps
     for {
-      pollUrl <- request(requestDownloadUrl, followRedirect = false)(extractPollingUrl, _ == 303)
+      pollUrl <- get(requestDownloadUrl, followRedirect = false)(extractPollingUrl, _ == 303)
       downloadInfoUrl <- pollForDownloadInfoUrl(pollUrl, pollingInterval = 5)
-      downloadLinks <- request(downloadInfoUrl)(extractDownloadLinks)
+      downloadLinks <- get(downloadInfoUrl)(extractDownloadLinks)
     } yield downloadLinks
 
   }
@@ -396,7 +508,7 @@ case class DatafinitiAPIv4(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
     * @return EitherT[Future, DatafinitiError, JValue] with json or parsed json user info
     */
   def userInfo(specificField: Option[String] = None)(implicit ec: ExecutionContext): DatafinitiFuture[JValue] = {
-    val url = s"$API_URL/users/$apiToken"
+    val url = s"$API_URL/users/"
 
 
     def userInfoResponse(body: String) = {
@@ -408,7 +520,7 @@ case class DatafinitiAPIv4(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
       }
     }
 
-    request(url)((_, response) => Right(userInfoResponse(response.body)))
+    get(url)((_, response) => Right(userInfoResponse(response.body)))
   }
 
 
@@ -425,37 +537,29 @@ case class DatafinitiAPIv4(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
       _.extractOpt[T])
   }
 
-  /**
-    * Create a safe url without API token for logging purposes
-    *
-    * @param url String
-    * @return String
-    */
-  def safeUrl(url: String): String = url.replace(apiToken, "AAAXXXXXXXXXXXX")
-
 
 }
 
 object DatafinitiAPIv4 {
 
   /**
-    * Creates a DatafinitiAPIv4 instance based on config apikey defined in "datafinity.apiKey"
+    * Creates a DatafinitiAPIv4 instance based on config email & password defined in "datafinity.email" & "datafinity.password"
     *
     * @param httpTimeoutSeconds default, 3600 seconds
     * @param config             implicitly
     * @return DatafinitiAPIv4 object
     */
-  def apply(httpTimeoutSeconds: Int)(implicit config: Config): DatafinitiAPIv4 = {
-    DatafinitiAPIv4(config.getString("datafinity.apiKey"), httpTimeoutSeconds)
+  def apply(httpTimeoutSeconds: Int)(implicit config: Config, ec: ExecutionContext): DatafinitiAPIv4 = {
+    DatafinitiAPIv4(config.getString("datafinity.email"), config.getString("datafinity.password"), httpTimeoutSeconds)
   }
 
   /**
-    * Creates a DatafinitiAPIv4 instance based on config apikey defined in "datafinity.apiKey"
+    * Creates a DatafinitiAPIv4 instance based on config email & password defined in "datafinity.email" & "datafinity.password"
     *
     * @param config implicitly
     * @return DatafinitiAPIv4 object
     */
-  def apply()(implicit config: Config): DatafinitiAPIv4 = {
-    DatafinitiAPIv4(config.getString("datafinity.apiKey"))
+  def apply()(implicit config: Config, ec: ExecutionContext): DatafinitiAPIv4 = {
+    DatafinitiAPIv4(config.getString("datafinity.email"), config.getString("datafinity.password"))
   }
 }
