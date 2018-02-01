@@ -4,8 +4,8 @@ package com.datlinq.datafiniti
 import java.io.{ByteArrayOutputStream, FileOutputStream}
 
 import com.datlinq.datafiniti.config.DatafinitiAPIFormats.{CSV, JSON}
-import com.datlinq.datafiniti.config.DatafinitiAPIViews
-import com.datlinq.datafiniti.config.DatafinitiAPIViews.{BusinessesAll, BusinessesAllBasic}
+import com.datlinq.datafiniti.config.DatafinitiAPIViewsV3
+import com.datlinq.datafiniti.config.DatafinitiAPIViewsV3.{BusinessesAll, BusinessesAllBasic}
 import com.datlinq.datafiniti.response.DatafinitiTypes.DatafinitiFuture
 import com.typesafe.config.{Config, ConfigFactory}
 import org.json4s._
@@ -38,7 +38,7 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
   ignore("download") { apiv3 => {
 
     val target = new FileOutputStream("/tmp/justeat.co.uk.json")
-    val et: DatafinitiFuture[Int] = apiv3.download(DatafinitiAPIViews.BusinessesAll, Some("""sourceURLs:just-eat.co.uk"""), JSON)(target)
+    val et: DatafinitiFuture[Int] = apiv3.download(DatafinitiAPIViewsV3.BusinessesAll, Some("""sourceURLs:just-eat.co.uk"""), JSON)(target)
     val resultList = Await.result(et.value, Duration.Inf)
 
     target.close()

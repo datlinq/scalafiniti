@@ -4,7 +4,8 @@ import java.io.ByteArrayOutputStream
 
 import com.datlinq.datafiniti.config.DatafinitiAPIFormats.{CSV, JSON}
 import com.datlinq.datafiniti.config.DatafinitiAPITypes._
-import com.datlinq.datafiniti.config.DatafinitiAPIViews.{BusinessesAllBasic, ProductsAll}
+import com.datlinq.datafiniti.config.DatafinitiAPIViewsV4._
+import com.datlinq.datafiniti.request.SearchRequest._
 import com.datlinq.datafiniti.response.DatafinitiTypes.DatafinitiFuture
 import com.typesafe.config.{Config, ConfigFactory}
 import org.json4s._
@@ -40,19 +41,19 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
       apiv4.invokePrivate(buildUrl(apiType, queryParts)).replace(apiv4 + ":@", token)
     }
 
-    assert(invoke(Businesses, Map.empty[String, Any]) === s"https://api.datafiniti.co/v4/data/businesses")
-    assert(invoke(Products, List("a" -> 1).toMap) === s"https://api.datafiniti.co/v4/data/products?a=1")
-    assert(invoke(Products, List("a" -> 1, "b" -> None, "c" -> Some(true)).toMap) === s"https://api.datafiniti.co/v4/data/products?a=1&c=true")
-    assert(invoke(Businesses, List("view" -> "businesses_all", "format" -> "JSON", "q" -> Some("categories:hotels"), "records" -> 1, "download" -> false).toMap) === s"https://api.datafiniti.co/v4/data/businesses?format=JSON&q=categories:hotels&records=1&download=false&view=businesses_all")
+    assert(invoke(Businesses, Map.empty[String, Any]) === s"https://api.datafiniti.co/v4/businesses/search")
+    assert(invoke(Products, List("a" -> 1).toMap) === s"https://api.datafiniti.co/v4/products/search?a=1")
+    assert(invoke(Products, List("a" -> 1, "b" -> None, "c" -> Some(true)).toMap) === s"https://api.datafiniti.co/v4/products/search?a=1&c=true")
+    assert(invoke(Businesses, List("view" -> "businesses_all", "format" -> "JSON", "q" -> Some("categories:hotels"), "records" -> 1, "download" -> false).toMap) === s"https://api.datafiniti.co/v4/businesses/search?format=JSON&q=categories:hotels&records=1&download=false&view=businesses_all")
   }
   }
 
 
   test("query") { apiv4 => {
     val compositeFuture = for {
-      f1 <- apiv4.query(BusinessesAllBasic, Some("categories:hotels"), Some(1), Some(false), JSON).value
-      f2 <- apiv4.query(ProductsAll, Some("categories:hotels"), Some(1), Some(false), JSON).value
-      f3 <- apiv4.query(BusinessesAllBasic, Some("categories:hotels"), Some(1), Some(false), CSV).value
+      f1 <- apiv4.query(SearchRequestV4("categories:hotels", BusinessesBasic, 1, JSON)).value
+      f2 <- apiv4.query(SearchRequestV4("categories:hotels", ProductsDefault, 1, JSON)).value
+      f3 <- apiv4.query(SearchRequestV4("categories:hotels", BusinessesBasic, 1, CSV)).value
     } yield List(f1, f2, f3)
 
 
@@ -62,7 +63,7 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
     assert(resultList.head.isRight)
     //    assert(resultList(1).isLeft)
     assert(resultList(2).isRight)
-    assert(resultList.head.right.map(json => (json \ "estimated total").extract[Int]).right.getOrElse(0) > 10000)
+    assert(resultList.head.right.map(json => (json \ "num_found").extract[Int]).right.getOrElse(0) > 10000)
     //    assert(resultList(1).left.get.message.contains("user does not have access to this view"))
   }
   }
@@ -70,7 +71,7 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
 
   test("downloadLinks") { apiv4 => {
 
-    val et: DatafinitiFuture[List[String]] = apiv4.downloadLinks(BusinessesAllBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON)
+    val et: DatafinitiFuture[List[String]] = apiv4.downloadLinks(BusinessesBasic, Some("""categories:hotels AND city:"Den Helder""""), JSON)
 
     val resultList = Await.result(et.value, Duration.Inf)
 
@@ -86,7 +87,7 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
 
     val numRecords = 2
     val stream = new ByteArrayOutputStream()
-    val et: DatafinitiFuture[Int] = apiv4.download(BusinessesAllBasic, Some("""categories:hotels AND city:Alkmaar"""), JSON, Some(numRecords))(stream)
+    val et: DatafinitiFuture[Int] = apiv4.download(BusinessesBasic, Some("""categories:hotels AND city:Alkmaar"""), JSON, Some(numRecords))(stream)
     val resultCount = Await.result(et.value, Duration.Inf)
 
     val lines = stream.toString.split("\n")
@@ -104,7 +105,7 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
 
     val numRecords = 2
     val stream = new ByteArrayOutputStream()
-    val et: DatafinitiFuture[Int] = apiv4.download(BusinessesAllBasic, Some("""categories:hotels AND city:Alkmaar"""), JSON, Some(numRecords), sequential = true)(stream)
+    val et: DatafinitiFuture[Int] = apiv4.download(BusinessesBasic, Some("""categories:hotels AND city:Alkmaar"""), JSON, Some(numRecords), sequential = true)(stream)
     val resultCount = Await.result(et.value, Duration.Inf)
 
     val lines = stream.toString.split("\n")

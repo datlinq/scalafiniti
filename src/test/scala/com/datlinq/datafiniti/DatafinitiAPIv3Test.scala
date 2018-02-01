@@ -4,7 +4,7 @@ import java.io.ByteArrayOutputStream
 
 import com.datlinq.datafiniti.config.DatafinitiAPIFormats.{CSV, JSON}
 import com.datlinq.datafiniti.config.DatafinitiAPITypes._
-import com.datlinq.datafiniti.config.DatafinitiAPIViews.{BusinessesAllBasic, ProductsAll}
+import com.datlinq.datafiniti.config.DatafinitiAPIViewsV3.{BusinessesAllBasic, ProductsAll}
 import com.datlinq.datafiniti.response.DatafinitiTypes.DatafinitiFuture
 import com.typesafe.config.{Config, ConfigFactory}
 import org.json4s._

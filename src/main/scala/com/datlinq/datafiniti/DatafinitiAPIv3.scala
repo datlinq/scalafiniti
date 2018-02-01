@@ -5,7 +5,7 @@ import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
 
 import com.datlinq.datafiniti.config.DatafinitiAPIFormats._
 import com.datlinq.datafiniti.config.DatafinitiAPITypes._
-import com.datlinq.datafiniti.config.DatafinitiAPIViews._
+import com.datlinq.datafiniti.config.DatafinitiAPIViewsV3._
 import com.datlinq.datafiniti.response.DatafinitiTypes.{DatafinitiFuture, DatafinitiResponse}
 import com.netaporter.uri.dsl._
 import com.typesafe.config.Config
@@ -115,7 +115,7 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
     * @param ec              Execution context for futures
     * @return EitherT[Future, DatafinitiError, JValue]
     */
-  def query(apiView: APIView, query: Option[String] = None, numberOfRecords: Option[Int] = None, download: Option[Boolean] = None, format: APIFormat = JSON)(implicit ec: ExecutionContext): DatafinitiFuture[JValue] = {
+  def query(apiView: APIViewV3, query: Option[String] = None, numberOfRecords: Option[Int] = None, download: Option[Boolean] = None, format: APIFormat = JSON)(implicit ec: ExecutionContext): DatafinitiFuture[JValue] = {
     val url = buildUrl(
       apiType = apiView.apiType,
       queryParts = List(
@@ -141,7 +141,7 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
     * @param ec              Execution context for futures
     * @return EitherT[Future, DatafinitiError, List[String]  with the list containing the download links
     */
-  def downloadLinks(apiView: APIView, query: Option[String] = None, format: APIFormat = JSON, numberOfRecords: Option[Int] = None)(implicit ec: ExecutionContext): DatafinitiFuture[List[String]] = {
+  def downloadLinks(apiView: APIViewV3, query: Option[String] = None, format: APIFormat = JSON, numberOfRecords: Option[Int] = None)(implicit ec: ExecutionContext): DatafinitiFuture[List[String]] = {
     val requestDownloadUrl = buildUrl(
       apiType = apiView.apiType,
       queryParts = List(
@@ -321,7 +321,7 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
     * @param ec              Execution context for futures
     * @return EitherT[Future, DatafinitiError, Int]  where the int is the number of lines imported
     */
-  def download(apiView: APIView, query: Option[String] = None, format: APIFormat = JSON, numberOfRecords: Option[Int] = None, sequential: Boolean = false)(outputStream: OutputStream)(implicit ec: ExecutionContext): DatafinitiFuture[Int] = {
+  def download(apiView: APIViewV3, query: Option[String] = None, format: APIFormat = JSON, numberOfRecords: Option[Int] = None, sequential: Boolean = false)(outputStream: OutputStream)(implicit ec: ExecutionContext): DatafinitiFuture[Int] = {
     val eitherLinksOrError = downloadLinks(apiView, query, format, numberOfRecords)
     var counter = 0
 

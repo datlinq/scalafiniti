@@ -8,17 +8,27 @@ package com.datlinq.datafiniti.config
 object DatafinitiAPIFormats {
 
   sealed trait APIFormat {
-    protected val name: String
+    def name: String
 
     override def toString: String = name
   }
 
+  object APIFormat {
+    def fromString(format: String): APIFormat = {
+      if (format == JSON.name) JSON
+      else if (format == CSV.name) CSV
+      else CustomFormat(format)
+    }
+  }
+
+  case class CustomFormat(name: String) extends APIFormat
+
   object JSON extends APIFormat {
-    override protected val name: String = "JSON"
+    override val name: String = "JSON"
   }
 
   object CSV extends APIFormat {
-    override protected val name: String = "CSV"
+    override val name: String = "CSV"
 
   }
 

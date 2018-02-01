@@ -1,13 +1,13 @@
 package com.datlinq.datafiniti.config
 
-import com.datlinq.datafiniti.config.DatafinitiAPIViews._
+import com.datlinq.datafiniti.config.DatafinitiAPIViewsV3._
 import org.scalatest.FunSuite
 
 /**
   * Created by Tom Lous on 30/08/2017.
   * Copyright © 2017 Datlinq B.V..
   */
-class DatafinitiAPIViewsTest extends FunSuite {
+class DatafinitiAPIViewsV3TestV3 extends FunSuite {
 
   test("toSting") {
     assert(BusinessesAll.toString() === "businesses_all")

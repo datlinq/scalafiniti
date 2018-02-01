@@ -8,17 +8,33 @@ package com.datlinq.datafiniti.config
 object DatafinitiAPITypes {
 
   sealed trait APIType {
-    protected val name: String
+    def name: String
 
     override def toString: String = name
   }
 
+  object APIType {
+    def fromString(typeName: String): APIType = {
+      if (typeName == Businesses.name) Businesses
+      else if (typeName == Products.name) Products
+      else if (typeName == Property.name) Property
+      else CustomType(typeName)
+    }
+  }
+
+  case class CustomType(name: String) extends APIType
+
   object Businesses extends APIType {
-    override protected val name: String = "businesses"
+    override val name: String = "businesses"
   }
 
   object Products extends APIType {
-    override protected val name: String = "products"
+    override val name: String = "products"
+  }
+
+
+  object Property extends APIType {
+    override val name: String = "properties"
   }
 
 
