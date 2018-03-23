@@ -38,6 +38,7 @@ import scalaj.http._
   * @param apiToken           apitoken supplied by datafinity
   * @param httpTimeoutSeconds default, 3600 seconds
   */
+@deprecated("New v4 version now available: https://datafiniti-api.readme.io/v3/docs/migrating-from-v3-to-v4", "2017-12-15")
 case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) extends DatafinitiAPI with LazyLogging {
 
   protected val VERSION = "v3"

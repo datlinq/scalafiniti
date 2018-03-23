@@ -6,6 +6,7 @@ import com.datlinq.datafiniti.config.DatafinitiAPITypes._
   * Created by Tom Lous on 30/08/2017.
   * Copyright © 2017 Datlinq B.V..
   */
+@deprecated("New v4 version now available: https://datafiniti-api.readme.io/v3/docs/migrating-from-v3-to-v4", "2017-12-15")
 object DatafinitiAPIViewsV3 {
 
 
