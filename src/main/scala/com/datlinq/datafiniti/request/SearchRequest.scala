@@ -2,7 +2,6 @@ package com.datlinq.datafiniti.request
 
 import com.datlinq.datafiniti.config.DatafinitiAPIFormats.{APIFormat, JSON}
 import com.datlinq.datafiniti.config.DatafinitiAPIViewsV4.APIViewV4
-import org.json4s.JsonAST._
 import org.json4s.JsonDSL._
 import org.json4s.{CustomSerializer, _}
 
@@ -15,6 +14,16 @@ object SearchRequest {
 
   implicit val json4sFormats = DefaultFormats
 
+  /**
+    * Body params expected for /search api request
+    *
+    * @param query
+    * @param view_name
+    * @param num_records
+    * @param format
+    * @param download
+    * @param view
+    */
   case class SearchRequestV4(
                               query: String,
                               view_name: APIViewV4,
@@ -25,7 +34,10 @@ object SearchRequest {
                             )
 
 
-  class SearchRequestSerializerV4 extends CustomSerializer[SearchRequestV4](format => ( {
+  /**
+    * Json4s serializer for case class object to turn objects into strings and make certain fields optional
+    */
+  class SearchRequestSerializerV4 extends CustomSerializer[SearchRequestV4](_ => ( {
     case jsonObj: JObject =>
       val query = (jsonObj \ "query").extract[String]
       val view_name = (jsonObj \ "view_name").extract[String]

@@ -3,29 +3,22 @@ package com.datlinq.datafiniti
 import java.io.OutputStream
 import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
 
-import com.datlinq.datafiniti.config.DatafinitiAPIFormats._
+import cats.data._
+import cats.implicits._
 import com.datlinq.datafiniti.config.DatafinitiAPITypes._
-import com.datlinq.datafiniti.config.DatafinitiAPIViewsV4._
+import com.datlinq.datafiniti.request.SearchRequest._
+import com.datlinq.datafiniti.response.DatafinitiError
 import com.datlinq.datafiniti.response.DatafinitiTypes.{DatafinitiFuture, DatafinitiResponse}
 import com.netaporter.uri.dsl._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.{LazyLogging, Logger}
-import org.json4s.JsonAST._
 import org.json4s._
 import org.json4s.native.JsonMethods._
 import org.json4s.native.Serialization._
 
-import scala.concurrent.Promise
+import scala.concurrent.{Promise, _}
 import scala.io.Codec
 import scala.util.{Failure, Success, Try}
-
-//import scala.concurrent.ExecutionContext.Implicits.global
-import cats.data._
-import cats.implicits._
-import com.datlinq.datafiniti.request.SearchRequest._
-import com.datlinq.datafiniti.response.DatafinitiError
-
-import scala.concurrent._
 import scalaj.http._
 
 
@@ -34,7 +27,7 @@ import scalaj.http._
   */
 
 /**
-  * Create new DatafinitiAPi Object
+  * Create new DatafinitiAPIv4 Object
   *
   * @param email              account email supplied by datafinity
   * @param password           password email supplied by datafinity
@@ -43,7 +36,6 @@ import scalaj.http._
 case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: Int = 3600)(implicit ec: ExecutionContext) extends DatafinitiAPI with LazyLogging {
 
   import scala.concurrent.duration._
-  //  import scala.concurrent.ExecutionContext.Implicits.global
 
   protected val VERSION = "v4"
   protected val API_URL = s"$SCHEME://$DOMAIN/$VERSION"
@@ -53,21 +45,43 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
   implicit val json4sFormats = DefaultFormats + new SearchRequestSerializerV4()
 
 
-
+  /**
+    * Private class that handles the auth JWT token retrieval and refreshing in all subsequent calls
+    *
+    * @param expiresDefault if no expiretimeout is passed, use default num of seconds until token has to be refreshed
+    * @param ec             Execution context for futures
+    */
   private case class AuthAccessToken(expiresDefault: Int = 120)(implicit ec: ExecutionContext) {
-    val authUrl = s"$API_URL/auth"
+    val authUrl = s"$API_URL/auth" // auth endpoint for NIC
 
+    /**
+      * Request body data structure of auth call
+      *
+      * @param email    username
+      * @param password password (PLAINTEXT!!!)
+      */
     private case class AuthAccessTokenFetcherBody(email: String, password: String)
 
+    /**
+      * Private class that contains the token and updates local var with new token after timeut expires
+      *
+      * @param token
+      */
     private case class AccessToken(token: String) {
       val deadline: Deadline = expiresDefault seconds fromNow
       Future(Await.ready(Promise().future, deadline.timeLeft)) onComplete (_ => {
-        at = AccessToken(fetchToken)
+        currentAccessToken = AccessToken(fetchToken)
       })
     }
 
 
-    private def fetchToken(implicit ec: ExecutionContext) = {
+    /**
+      * Actual call to request the JWT access token from auth endpoint
+      *
+      * @param ec Execution context for futures
+      * @return the JWT as String or empty String incase something went wrong
+      */
+    private def fetchToken(implicit ec: ExecutionContext): String = {
       Await.result(post(authUrl, Some(AuthAccessTokenFetcherBody(email, password)), accessToken = None)((_, response) =>
         Right((parse(response.body) \ "token").extract[String])
       ).value, httpTimeoutSeconds seconds) match {
@@ -80,15 +94,28 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
       }
     }
 
+    /**
+      * Create new MUTABLE accessToken
+      */
+    @volatile private var currentAccessToken = AccessToken(fetchToken)
 
-    @volatile private var at = AccessToken(fetchToken)
+    /**
+      * Get AccessToken object
+      *
+      * @return
+      */
+    def accessToken: String = currentAccessToken.token
 
-    def accessToken: String = at.token
-
+    /**
+      * Currnt accessToken as String
+      *
+      * @return
+      */
     override def toString: String = accessToken
   }
 
 
+  // Generate a default reference to the AccessToken Fecther for use in all methods
   private lazy val currentAccessToken = AuthAccessToken()
 
 
@@ -110,9 +137,8 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
   }
 
 
-
   /**
-    * Make call to url with Datafiniti authentication
+    * Make GET call to url with Datafiniti authentication
     *
     * @param url            url to call
     * @param followRedirect boolean for choosing to follow the call in case of 30x
@@ -127,20 +153,21 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
           .timeout(httpTimeoutSeconds * 1000, httpTimeoutSeconds * 10000)
           .option(HttpOptions.followRedirects(followRedirect))
 
-
     call[T](url, s"get: $url, followRedirect: $followRedirect", optionallyAddAuthorizationBearer(http, accessToken))(successHandler, codeCheck, ec)
   }
 
 
   /**
-    * Make call to url with Datafiniti authentication
+    * Make POST call to url with Datafiniti authentication
     *
     * @param url            url to call
+    * @param data           optional data to encode in body
     * @param followRedirect boolean for choosing to follow the call in case of 30x
     * @param codeCheck      method that validates the call based on httpresponse code, default 200 ok
-    * @param successHandler convert the url & responsebody to appropriate value of type T wrapped in Either[DatafinitiError, T]
+    * @param successHandler convert the url & response body to appropriate value of type T wrapped in Either[DatafinitiError, T]
     * @param ec             Execution context for futures
     * @tparam T Type of return parameter returned by successHandler
+    * @tparam D Type of data passed to post
     * @return EitherT[Future, DatafinitiError, T]
     */
   private def post[T, D <: AnyRef : Manifest](url: String, data: Option[D], followRedirect: Boolean = true, accessToken: Option[AuthAccessToken] = Some(currentAccessToken))(successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200)(implicit ec: ExecutionContext): DatafinitiFuture[T] = {
@@ -156,6 +183,18 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
     call[T](url, s"post: $url, data: $data, followRedirect: $followRedirect", optionallyAddAuthorizationBearer(http, accessToken))(successHandler, codeCheck, ec)
   }
 
+  /**
+    * Perform a call to Datafinity endpoint
+    *
+    * @param url            url to call
+    * @param logString      log message to output when calling
+    * @param http           The HttpRequest object
+    * @param successHandler convert the url & response body to appropriate value of type T wrapped in Either[DatafinitiError, T]
+    * @param codeCheck      method that validates the call based on httpresponse code, default 200 ok
+    * @param ec             Execution context for futures
+    * @tparam T Type of return parameter returned by successHandler
+    * @return EitherT[Future, DatafinitiError, T]
+    */
   private def call[T](url: String, logString: String, http: HttpRequest)(implicit successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200, ec: ExecutionContext): DatafinitiFuture[T] = {
     EitherT(
       Future({
@@ -167,6 +206,16 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
     )
   }
 
+  /**
+    * Handle responses from HttpRequest call
+    *
+    * @param url            url that was called
+    * @param response       HttpResponse object
+    * @param successHandler convert the url & response body to appropriate value of type T wrapped in Either[DatafinitiError, T]
+    * @param codeCheck      method that validates the call based on httpresponse code, default 200 ok
+    * @tparam T Type of return parameter returned by successHandler
+    * @return EitherT[Future, DatafinitiError, T]
+    */
   private def responseHandler[T](url: String, response: HttpResponse[String])(implicit successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200): DatafinitiResponse[T] = {
     logger.debug(s"response from $url => ${response.headers.map(kv => kv._1 + ": " + kv._2.mkString(",")).mkString(" | ")}")
     response.code match {
@@ -178,12 +227,26 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
     }
   }
 
+  /**
+    * Partial function to handle Errors in a correct way
+    *
+    * @param url url that was called
+    * @tparam T Type of return parameter returned by successHandler
+    * @return PartialFunction[Throwable, DatafinitiResponse[T]]
+    **/
   private def recoverHandler[T](url: String): PartialFunction[Throwable, DatafinitiResponse[T]] = {
     // $COVERAGE-OFF$Not sure how to test this
     case t: Throwable => Left(DatafinitiError.APICallFailed(t.getMessage, url))
     // $COVERAGE-ON$
   }
 
+  /**
+    * Optionally supplement header with bearer token if it was specified
+    *
+    * @param http            HttpRequest
+    * @param authAccessToken optional AuthToken
+    * @return HttpRequest
+    */
   private def optionallyAddAuthorizationBearer(http: HttpRequest, authAccessToken: Option[AuthAccessToken] = None): HttpRequest = {
     authAccessToken match {
       case Some(accessToken) => http.header("Authorization", s"Bearer $accessToken")
@@ -193,20 +256,13 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
 
 
   /**
-    * Queries datafinity
+    * Queries datafinity, searching
     *
-    * @param apiView         The view of the data
-    * @param query           Filter of fields
-    * @param numberOfRecords how many records to return in the its response.
-    * @param download        initiate a download request or not
-    * @param format          which data format you want to see. You can set it to JSON or CSV.
-    * @param ec              Execution context for futures
+    * @param searchRequest   The Search Query
     * @return EitherT[Future, DatafinitiError, JValue]
     */
-  def query(searchRequest: SearchRequestV4)(implicit ec: ExecutionContext): DatafinitiFuture[JValue] = {
+  def search(searchRequest: SearchRequestV4)(implicit ec: ExecutionContext): DatafinitiFuture[JValue] = {
     val url = buildUrl(apiType = searchRequest.view_name.apiType)
-
-
     post(url, Some(searchRequest))((_, response) => Right(parse(response.body)))
   }
 
@@ -214,23 +270,16 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
   /**
     * Do query but returns urls for the download of the resulting dataset
     *
-    * @param apiView         The view of the data
-    * @param query           Filter of fields
-    * @param format          which data format you want to see. You can set it to JSON or CSV.
-    * @param numberOfRecords how many records to return in the its response.
+    * @param searchRequest   The Search Query
     * @param ec              Execution context for futures
     * @return EitherT[Future, DatafinitiError, List[String]  with the list containing the download links
     */
-  def downloadLinks(apiView: APIViewV4, query: Option[String] = None, format: APIFormat = JSON, numberOfRecords: Option[Int] = None)(implicit ec: ExecutionContext): DatafinitiFuture[List[String]] = {
-    val requestDownloadUrl = buildUrl(
-      apiType = apiView.apiType,
-      queryParts = List(
-        "view" -> apiView,
-        "format" -> format,
-        "records" -> numberOfRecords,
-        "q" -> query,
-        "download" -> Some(true)
-      ).toMap)
+  def downloadLinks(searchRequest: SearchRequestV4)(implicit ec: ExecutionContext): DatafinitiFuture[List[String]] = {
+    val augmentedSearchRequest = searchRequest.copy(download = true)
+
+    val requestDownloadUrl = buildUrl(apiType = augmentedSearchRequest.view_name.apiType)
+
+    val url = requestDownloadUrl
 
 
     // Get polling URL
@@ -244,11 +293,10 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
      */
     def extractPollingUrl(url: String, response: HttpResponse[String]): DatafinitiResponse[String] = {
       (for {
-        option <- response.headers.get("location")
-        location <- option.headOption
-      } yield location) match {
-        case Some(path) =>
-          val redirect = s"$SCHEME://$DOMAIN$path"
+        downloadId <- (parse(response.body) \ "id").extractOpt[Int]
+      } yield downloadId) match {
+        case Some(id) =>
+          val redirect = s"$API_URL/downloads/$id"
           logger.debug(s"Found redirect from ${url} to => $redirect")
           Right(redirect)
         case None => Left(DatafinitiError.NoRedirectFromDownload(url))
@@ -381,7 +429,7 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
 
     // Execute all the download steps
     for {
-      pollUrl <- get(requestDownloadUrl, followRedirect = false)(extractPollingUrl, _ == 303)
+      pollUrl <- post(url, Some(augmentedSearchRequest))(extractPollingUrl, _ == 202)
       downloadInfoUrl <- pollForDownloadInfoUrl(pollUrl, pollingInterval = 5)
       downloadLinks <- get(downloadInfoUrl)(extractDownloadLinks)
     } yield downloadLinks
@@ -392,17 +440,14 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
   /**
     * Do query and stream the output to outputStream. !!Lines will be out of order!!
     *
-    * @param apiView         The view of the data
-    * @param query           Filter of fields
-    * @param format          which data format you want to see. You can set it to JSON or CSV.
-    * @param numberOfRecords how many records to return in the its response.
+    * @param searchRequest   The Search Query
     * @param outputStream    To which the lines are appended
     * @param sequential      If true, downlods will trigger after eacht other, not in parallel
     * @param ec              Execution context for futures
     * @return EitherT[Future, DatafinitiError, Int]  where the int is the number of lines imported
     */
-  def download(apiView: APIViewV4, query: Option[String] = None, format: APIFormat = JSON, numberOfRecords: Option[Int] = None, sequential: Boolean = false)(outputStream: OutputStream)(implicit ec: ExecutionContext): DatafinitiFuture[Int] = {
-    val eitherLinksOrError = downloadLinks(apiView, query, format, numberOfRecords)
+  def download(searchRequest: SearchRequestV4, sequential: Boolean = false)(outputStream: OutputStream)(implicit ec: ExecutionContext): DatafinitiFuture[Int] = {
+    val eitherLinksOrError = downloadLinks(searchRequest)
     var counter = 0
 
     /*
