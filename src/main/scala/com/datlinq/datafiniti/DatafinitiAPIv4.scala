@@ -42,7 +42,7 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
 
 
   implicit val loggerOpt: Option[Logger] = Some(logger)
-  implicit val json4sFormats = DefaultFormats + new SearchRequestSerializerV4()
+  implicit val json4sFormats: Formats = DefaultFormats + new SearchRequestSerializerV4()
 
 
   /**
@@ -65,7 +65,7 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
     /**
       * Private class that contains the token and updates local var with new token after timeut expires
       *
-      * @param token
+      * @param token The Bearer token
       */
     private case class AccessToken(token: String) {
       val deadline: Deadline = expiresDefault seconds fromNow
@@ -82,11 +82,11 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
       * @return the JWT as String or empty String incase something went wrong
       */
     private def fetchToken(implicit ec: ExecutionContext): String = {
-      Await.result(post(authUrl, Some(AuthAccessTokenFetcherBody(email, password)), accessToken = None)((_, response) =>
+      Await.result(post(authUrl, Some(AuthAccessTokenFetcherBody(email, password)), accessToken = None, logging = false)((_, response) =>
         Right((parse(response.body) \ "token").extract[String])
       ).value, httpTimeoutSeconds seconds) match {
         case Right(token) =>
-          logger.debug(s"JWT token $token")
+          //          logger.debug(s"JWT token $token")
           token
         case Left(t) =>
           logger.error(t.toString)
@@ -142,18 +142,24 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
     *
     * @param url            url to call
     * @param followRedirect boolean for choosing to follow the call in case of 30x
-    * @param codeCheck      method that validates the call based on httpresponse code, default 200 ok
+    * @param accessToken    pass accessToken, default the current one
+    * @param logging        configure wether data & responses may show up in the log (disabled for auth calls)
     * @param successHandler convert the url & responsebody to appropriate value of type T wrapped in Either[DatafinitiError, T]
+    * @param codeCheck      method that validates the call based on httpresponse code, default 200 ok
     * @param ec             Execution context for futures
     * @tparam T Type of return parameter returned by successHandler
     * @return EitherT[Future, DatafinitiError, T]
     */
-  private def get[T](url: String, followRedirect: Boolean = true, accessToken: Option[AuthAccessToken] = Some(currentAccessToken))(successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200)(implicit ec: ExecutionContext): DatafinitiFuture[T] = {
+  private def get[T](url: String, followRedirect: Boolean = true, accessToken: Option[AuthAccessToken] = Some(currentAccessToken), logging: Boolean = true)(successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200)(implicit ec: ExecutionContext): DatafinitiFuture[T] = {
     val http = Http(url)
           .timeout(httpTimeoutSeconds * 1000, httpTimeoutSeconds * 10000)
           .option(HttpOptions.followRedirects(followRedirect))
 
-    call[T](url, s"get: $url, followRedirect: $followRedirect", optionallyAddAuthorizationBearer(http, accessToken))(successHandler, codeCheck, ec)
+    call[T](
+      url,
+      optionallyAddAuthorizationBearer(http, accessToken),
+      if (logging) Some(s"get: $url, followRedirect: $followRedirect") else None
+    )(successHandler, codeCheck, ec)
   }
 
 
@@ -163,42 +169,50 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
     * @param url            url to call
     * @param data           optional data to encode in body
     * @param followRedirect boolean for choosing to follow the call in case of 30x
-    * @param codeCheck      method that validates the call based on httpresponse code, default 200 ok
+    * @param accessToken    pass accessToken, default the current one
+    * @param logging        configure wether data & responses may show up in the log (disabled for auth calls)
     * @param successHandler convert the url & response body to appropriate value of type T wrapped in Either[DatafinitiError, T]
+    * @param codeCheck      method that validates the call based on httpresponse code, default 200 ok
     * @param ec             Execution context for futures
     * @tparam T Type of return parameter returned by successHandler
     * @tparam D Type of data passed to post
     * @return EitherT[Future, DatafinitiError, T]
     */
-  private def post[T, D <: AnyRef : Manifest](url: String, data: Option[D], followRedirect: Boolean = true, accessToken: Option[AuthAccessToken] = Some(currentAccessToken))(successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200)(implicit ec: ExecutionContext): DatafinitiFuture[T] = {
+  private def post[T, D <: AnyRef : Manifest](url: String, data: Option[D], followRedirect: Boolean = true, accessToken: Option[AuthAccessToken] = Some(currentAccessToken), logging: Boolean = true)(successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200)(implicit ec: ExecutionContext): DatafinitiFuture[T] = {
     val http = Http(url)
       .timeout(httpTimeoutSeconds * 1000, httpTimeoutSeconds * 10000)
       .option(HttpOptions.followRedirects(followRedirect))
       .postData(data.map(d => {
         val json = write(d)
-        logger.debug(s"data: $json")
+        if (logging)
+          logger.debug(s"data: $json")
         json
       }).getOrElse(""))
 
-    call[T](url, s"post: $url, data: $data, followRedirect: $followRedirect", optionallyAddAuthorizationBearer(http, accessToken))(successHandler, codeCheck, ec)
+    call[T](
+      url,
+      optionallyAddAuthorizationBearer(http, accessToken),
+      if (logging) Some(s"post: $url, data: $data, followRedirect: $followRedirect") else None
+    )(successHandler, codeCheck, ec)
   }
 
   /**
     * Perform a call to Datafinity endpoint
     *
     * @param url            url to call
-    * @param logString      log message to output when calling
     * @param http           The HttpRequest object
+    * @param logString      optional log message to output when calling
     * @param successHandler convert the url & response body to appropriate value of type T wrapped in Either[DatafinitiError, T]
     * @param codeCheck      method that validates the call based on httpresponse code, default 200 ok
     * @param ec             Execution context for futures
     * @tparam T Type of return parameter returned by successHandler
     * @return EitherT[Future, DatafinitiError, T]
     */
-  private def call[T](url: String, logString: String, http: HttpRequest)(implicit successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200, ec: ExecutionContext): DatafinitiFuture[T] = {
+  private def call[T](url: String, http: HttpRequest, logString: Option[String] = None)(implicit successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200, ec: ExecutionContext): DatafinitiFuture[T] = {
     EitherT(
       Future({
-        logger.debug(logString)
+        if (logString.isDefined)
+          logger.debug(logString.get)
         http.asString
       })
         .map(response => responseHandler(url, response))
@@ -232,7 +246,7 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
     *
     * @param url url that was called
     * @tparam T Type of return parameter returned by successHandler
-    * @return PartialFunction[Throwable, DatafinitiResponse[T]]
+    * @return PartialFunction[Throwable, DatafinitiResponse [ T ] ]
     **/
   private def recoverHandler[T](url: String): PartialFunction[Throwable, DatafinitiResponse[T]] = {
     // $COVERAGE-OFF$Not sure how to test this
@@ -297,7 +311,7 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
       } yield downloadId) match {
         case Some(id) =>
           val redirect = s"$API_URL/downloads/$id"
-          logger.debug(s"Found redirect from ${url} to => $redirect")
+          logger.debug(s"Found redirect from $url to => $redirect")
           Right(redirect)
         case None => Left(DatafinitiError.NoRedirectFromDownload(url))
       }
@@ -328,8 +342,8 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
       def checkDownloadCompleted(url: String, response: HttpResponse[String]): DatafinitiResponse[(Boolean, Option[Double])] = {
         val json = parse(response.body)
         val status = (json \\ "status").extractOpt[String]
-        val total = (json \\ "numRequested").extractOpt[Double]
-        val downloaded = (json \\ "numDownloaded").extractOpt[Double]
+        val total = (json \\ "total_cost").extractOpt[Double]
+        val downloaded = (json \\ "num_downloaded").extractOpt[Double]
 
         val percentage: Option[Double] = (total, downloaded) match {
           case (Some(t), Some(d)) => Some(d / t * 100.0)
@@ -337,8 +351,9 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
         }
 
         status match {
-          case Some(s) if s.toUpperCase() == "COMPLETED" => Right((true, percentage))
-          case Some(s) if s.toUpperCase() == "STARTED" => Right((false, percentage))
+          case Some(s) if s.toLowerCase() == "completed" => Right((true, percentage))
+          case Some(s) if s.toLowerCase() == "started" => Right((false, percentage))
+          case Some(s) if s.toLowerCase() == "running" => Right((false, percentage))
           case Some(s) => Left(DatafinitiError.UnexpectedDownloadStatus(s, response.body, url))
           case None => Left(DatafinitiError.NoDownloadStatus(response.body, url))
         }
@@ -394,9 +409,8 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
         promiseStatus
           .future
           .map(_ => {
-            val resultUrl = pollUrl.replace("requests", "results")
-            logger.debug(s"Created resultsUrl $resultUrl from $pollUrl")
-            Right(resultUrl)
+            // In v4 polling Url == downloadLinks Url. But due to seperation of concerns I chose to make an additional call to same url here. Perhaps pass the json in the future?
+            Right(pollUrl)
           })
           .recover({
             case t: Throwable => Left(DatafinitiError.WrappedException(t, pollUrl))
@@ -414,11 +428,11 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
       * @return Either a DatafinitiError or a List of download URL's
       */
     def extractDownloadLinks(url: String, response: HttpResponse[String]): DatafinitiResponse[List[String]] = {
-      val json = parse(response.body) \ "url"
+      val json = parse(response.body) \ "results"
       val urls = json.children.flatMap(_.extractOpt[String])
 
       if (urls.nonEmpty) {
-        logger.debug(s"Found download urls in ${url} => $urls")
+        logger.debug(s"Found download urls in $url => $urls")
         Right(urls)
       }
       else {
@@ -523,7 +537,7 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
     * @return EitherT[Future, DatafinitiError, JValue] with json or parsed json user info
     */
   def userInfo(specificField: Option[String] = None)(implicit ec: ExecutionContext): DatafinitiFuture[JValue] = {
-    val url = s"$API_URL/users/"
+    val url = s"$API_URL/account"
 
 
     def userInfoResponse(body: String) = {

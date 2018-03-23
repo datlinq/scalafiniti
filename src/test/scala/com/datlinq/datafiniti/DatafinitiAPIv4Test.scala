@@ -33,7 +33,7 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
-  ignore("private buildUrl") { apiv4 => {
+  test("private buildUrl") { apiv4 => {
     val buildUrl = PrivateMethod[String]('buildUrl)
     val token = ""
 
@@ -49,7 +49,7 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
-  ignore("query") { apiv4 => {
+  test("query") { apiv4 => {
     val compositeFuture = for {
       f1 <- apiv4.search(SearchRequestV4("categories:hotels", BusinessesBasic, 1, JSON)).value
       f2 <- apiv4.search(SearchRequestV4("categories:hotels", ProductsDefault, 1, JSON)).value
@@ -59,7 +59,7 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
 
     val resultList = Await.result(compositeFuture, Duration.Inf)
 
-    assert(resultList.length == 3)
+    assert(resultList.lengthCompare(3) == 0)
     assert(resultList.head.isRight)
     //    assert(resultList(1).isLeft)
     assert(resultList(2).isRight)
@@ -83,7 +83,7 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
   }
   }
 
-  ignore("download") { apiv4 => {
+  test("download") { apiv4 => {
 
     val numRecords = 2
     val stream = new ByteArrayOutputStream()
@@ -101,7 +101,7 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
   }
   }
 
-  ignore("download sequential") { apiv4 => {
+  test("download sequential") { apiv4 => {
 
     val numRecords = 2
     val stream = new ByteArrayOutputStream()
@@ -120,31 +120,31 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
-  ignore("userInfo") { apiv4 => {
+  test("userInfo") { apiv4 => {
 
     val et: DatafinitiFuture[JValue] = apiv4.userInfo()
 
     val resultList = Await.result(et.value, Duration.Inf)
 
     assert(resultList.isRight)
-    assert(resultList.right.map(json => (json \ "active").extract[Int]).right.getOrElse(0) === 1)
+    assert(resultList.right.map(json => (json \ "active").extract[Boolean]).right.getOrElse(false) === true)
   }
   }
 
 
-  ignore("userInfoField") { apiv4 => {
+  test("userInfoField") { apiv4 => {
 
-    val et: DatafinitiFuture[Option[Int]] = apiv4.userInfoField("active")
+    val et: DatafinitiFuture[Option[Boolean]] = apiv4.userInfoField("active")
 
     val resultList = Await.result(et.value, Duration.Inf)
 
     assert(resultList.isRight)
-    assert(resultList.right.getOrElse(None) === Some(1))
+    assert(resultList.right.getOrElse(None) === Some(true))
   }
   }
 
 
-  ignore("constructor with config") { apiv4 => {
+  test("constructor with config") { apiv4 => {
     val email = config.getString("datafinity.email")
     val password = config.getString("datafinity.password")
     val apiv4_2 = DatafinitiAPIv4(email, password)
@@ -154,7 +154,7 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
   }
   }
 
-  ignore("constructor with timeout") { apiv4 => {
+  test("constructor with timeout") { apiv4 => {
     implicit val config: Config = ConfigFactory.load()
     val apiv4_2 = DatafinitiAPIv4(3600)
 
