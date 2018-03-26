@@ -23,9 +23,7 @@ object DatafinitiAPIViewsV3 {
       view_name.split("_").toList match {
         case Nil => CustomViewV3("", APIType.fromString(""))
         case typeName :: Nil => CustomViewV3(typeName, APIType.fromString(typeName))
-        case typeName :: parts => CustomViewV3(typeName, APIType.fromString(parts.mkString("_")))
-
-        // @todo probably match agains existing objects, but probably not needed
+        case typeName :: parts => CustomViewV3(parts.mkString("_"), APIType.fromString(typeName))
       }
     }
   }

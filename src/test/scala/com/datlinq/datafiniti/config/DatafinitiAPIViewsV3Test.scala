@@ -1,5 +1,6 @@
 package com.datlinq.datafiniti.config
 
+import com.datlinq.datafiniti.config.DatafinitiAPITypes._
 import com.datlinq.datafiniti.config.DatafinitiAPIViewsV3._
 import org.scalatest.FunSuite
 
@@ -32,6 +33,12 @@ class DatafinitiAPIViewsV3Test extends FunSuite {
     assert(ProductsPricesFlat.toString() === "products_pricesFlat")
 
     assert(ProductsReviewsFlat.toString() === "products_reviewsFlat")
+  }
+
+  test("fromString") {
+    assert(APIViewV3.fromString("custom_view") == CustomViewV3("view", CustomType("custom")))
+    assert(APIViewV3.fromString("businesses_view") == CustomViewV3("view", Businesses))
+    assert(APIViewV3.fromString("products_view_long_name") == CustomViewV3("view_long_name", Products)) // a bit hacky due to singular / plural, but low prio to fi this
   }
 
 }

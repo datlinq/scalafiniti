@@ -38,6 +38,11 @@ class SearchRequestTest extends FunSuite {
   }
 
 
+  test("json4sFormats") {
+    assert(SearchRequest.json4sFormats === DefaultFormats)
+  }
+
+
   test("SearchRequestSerializerV4") {
     val json = parse(write(s))
 
