@@ -124,7 +124,7 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
 
     val result = Await.result(futureEither.value, Duration.Inf)
 
-    val json = result.getOrElse(JNothing)
+    val json = result.right.getOrElse(JNothing)
 
 
     // download links
@@ -134,7 +134,7 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
 
     val result2 = Await.result(futureEither2.value, Duration.Inf)
 
-    val links = result2.getOrElse(Nil)
+    val links = result2.right.getOrElse(Nil)
 
 
     // download
