@@ -22,7 +22,7 @@ This is an open source wrapper for that API, maintained by [Datlinq](http://datl
 Add to your build.sbt
 
 ```scala
-libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.3.1"
+libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.3.2"
 ```
 
 Then add import statement
@@ -212,4 +212,4 @@ val et: DatafinitiFuture[Option[Long]] = apiv4.userInfoField("available_download
 
 ## Compatibility
 
-The code was build for scala 2.11, 2.12 and for version v3 of the Dafaniti API
+The code was build for scala 2.11, 2.12 and for version v3 & v4 of the Dafaniti API

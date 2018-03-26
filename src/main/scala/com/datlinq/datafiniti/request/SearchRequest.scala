@@ -12,7 +12,7 @@ import org.json4s.{CustomSerializer, _}
 
 object SearchRequest {
 
-  implicit val json4sFormats = DefaultFormats
+  private implicit val json4sFormats = DefaultFormats
 
   /**
     * Body params expected for /search api request
