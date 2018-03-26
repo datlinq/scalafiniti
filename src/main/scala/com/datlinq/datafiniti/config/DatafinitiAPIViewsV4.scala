@@ -24,7 +24,7 @@ object DatafinitiAPIViewsV4 {
       view_name.split("_").toList match {
         case Nil => CustomViewV4("", APIType.fromString(""))
         case typeName :: Nil => CustomViewV4(typeName, APIType.fromString(typeName))
-        case typeName :: parts => CustomViewV4(typeName, APIType.fromString(parts.mkString("_")))
+        case typeName :: parts => CustomViewV4(parts.mkString("_"), APIType.fromString(typeName))
 
         // @todo probably match agains existing objects, but probably not needed
       }
@@ -97,17 +97,17 @@ object DatafinitiAPIViewsV4 {
     */
   object PropertiesDefault extends APIViewV4 {
     override val name: String = null
-    override val apiType: APIType = Property
+    override val apiType: APIType = Properties
   }
 
   object PropertiesFlatPrices extends APIViewV4 {
     override val name: String = "property_flat_prices"
-    override val apiType: APIType = Property
+    override val apiType: APIType = Properties
   }
 
   object PropertiesFlatReviews extends APIViewV4 {
     override val name: String = "property_flat_reviews"
-    override val apiType: APIType = Property
+    override val apiType: APIType = Properties
   }
 
 }

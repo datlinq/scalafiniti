@@ -8,7 +8,7 @@ import org.scalatest.FunSuite
   * Copyright © 2017 Datlinq B.V..
   */
 @deprecated("New v4 version now available: https://datafiniti-api.readme.io/v3/docs/migrating-from-v3-to-v4", "2017-12-15")
-class DatafinitiAPIViewsV3TestV3 extends FunSuite {
+class DatafinitiAPIViewsV3Test extends FunSuite {
 
   test("toSting") {
     assert(BusinessesAll.toString() === "businesses_all")

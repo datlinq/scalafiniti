@@ -208,7 +208,7 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
     * @tparam T Type of return parameter returned by successHandler
     * @return EitherT[Future, DatafinitiError, T]
     */
-  private def call[T](url: String, http: HttpRequest, logString: Option[String] = None)(implicit successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200, ec: ExecutionContext): DatafinitiFuture[T] = {
+  private def call[T](url: String, http: HttpRequest, logString: Option[String])(implicit successHandler: (String, HttpResponse[String]) => DatafinitiResponse[T], codeCheck: Int => Boolean = _ == 200, ec: ExecutionContext): DatafinitiFuture[T] = {
     EitherT(
       Future({
         if (logString.isDefined)
@@ -261,7 +261,7 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
     * @param authAccessToken optional AuthToken
     * @return HttpRequest
     */
-  private def optionallyAddAuthorizationBearer(http: HttpRequest, authAccessToken: Option[AuthAccessToken] = None): HttpRequest = {
+  private def optionallyAddAuthorizationBearer(http: HttpRequest, authAccessToken: Option[AuthAccessToken]): HttpRequest = {
     authAccessToken match {
       case Some(accessToken) => http.header("Authorization", s"Bearer $accessToken")
       case None => http

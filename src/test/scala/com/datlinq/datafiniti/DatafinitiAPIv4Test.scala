@@ -34,6 +34,12 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
 
 
   test("private buildUrl") { apiv4 => {
+    apiv4
+    .
+  }
+  }
+
+  test("private buildUrl") { apiv4 => {
     val buildUrl = PrivateMethod[String]('buildUrl)
     val token = ""
 

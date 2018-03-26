@@ -15,9 +15,9 @@ object DatafinitiAPITypes {
 
   object APIType {
     def fromString(typeName: String): APIType = {
-      if (typeName == Businesses.name) Businesses
-      else if (typeName == Products.name) Products
-      else if (typeName == Property.name) Property
+      if (typeName.toLowerCase == Businesses.name.toLowerCase) Businesses
+      else if (typeName.toLowerCase == Products.name.toLowerCase) Products
+      else if (typeName.toLowerCase == Properties.name.toLowerCase) Properties
       else CustomType(typeName)
     }
   }
@@ -33,7 +33,7 @@ object DatafinitiAPITypes {
   }
 
 
-  object Property extends APIType {
+  object Properties extends APIType {
     override val name: String = "properties"
   }
 

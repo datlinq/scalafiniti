@@ -15,8 +15,8 @@ object DatafinitiAPIFormats {
 
   object APIFormat {
     def fromString(format: String): APIFormat = {
-      if (format == JSON.name) JSON
-      else if (format == CSV.name) CSV
+      if (format.toLowerCase == JSON.name.toLowerCase) JSON
+      else if (format.toLowerCase == CSV.name.toLowerCase) CSV
       else CustomFormat(format)
     }
   }
