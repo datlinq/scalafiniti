@@ -27,7 +27,7 @@ object SearchRequest {
   case class SearchRequestV4(
                               query: String,
                               view_name: APIViewV4,
-                              num_records: Int = 10,
+                              num_records: Option[Int] = None,
                               format: APIFormat = JSON,
                               download: Boolean = false,
                               view: Option[List[String]] = None
@@ -41,7 +41,7 @@ object SearchRequest {
     case jsonObj: JObject =>
       val query = (jsonObj \ "query").extract[String]
       val view_name = (jsonObj \ "view_name").extract[String]
-      val num_records = (jsonObj \ "num_records").extract[Int]
+      val num_records = (jsonObj \ "num_records").extractOpt[Int]
       val format = (jsonObj \ "format").extract[String]
       val download = (jsonObj \ "download").extract[Boolean]
       val view = (jsonObj \ "view").extractOpt[List[String]]

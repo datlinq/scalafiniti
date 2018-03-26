@@ -33,11 +33,6 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
-  test("private buildUrl") { apiv4 => {
-    apiv4
-    .
-  }
-  }
 
   test("private buildUrl") { apiv4 => {
     val buildUrl = PrivateMethod[String]('buildUrl)
@@ -57,9 +52,9 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
 
   test("query") { apiv4 => {
     val compositeFuture = for {
-      f1 <- apiv4.search(SearchRequestV4("categories:hotels", BusinessesBasic, 1, JSON)).value
-      f2 <- apiv4.search(SearchRequestV4("categories:hotels", ProductsDefault, 1, JSON)).value
-      f3 <- apiv4.search(SearchRequestV4("categories:hotels", BusinessesBasic, 1, CSV)).value
+      f1 <- apiv4.search(SearchRequestV4("categories:hotels", BusinessesBasic, Some(1), JSON)).value
+      f2 <- apiv4.search(SearchRequestV4("categories:hotels", ProductsDefault, Some(1), JSON)).value
+      f3 <- apiv4.search(SearchRequestV4("categories:hotels", BusinessesBasic, Some(1), CSV)).value
     } yield List(f1, f2, f3)
 
 
@@ -77,7 +72,7 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
 
   test("downloadLinks") { apiv4 => {
 
-    val et: DatafinitiFuture[List[String]] = apiv4.downloadLinks(SearchRequestV4("""categories:hotels AND city:"Den Helder"""", BusinessesBasic, 1, JSON))
+    val et: DatafinitiFuture[List[String]] = apiv4.downloadLinks(SearchRequestV4("""categories:hotels AND city:"Den Helder"""", BusinessesBasic, Some(1), JSON))
 
     val resultList = Await.result(et.value, Duration.Inf)
 
@@ -93,7 +88,7 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
 
     val numRecords = 2
     val stream = new ByteArrayOutputStream()
-    val et: DatafinitiFuture[Int] = apiv4.download(SearchRequestV4("""categories:hotels AND city:Alkmaar""", BusinessesBasic, numRecords, JSON))(stream)
+    val et: DatafinitiFuture[Int] = apiv4.download(SearchRequestV4("""categories:hotels AND city:Alkmaar""", BusinessesBasic, Some(numRecords), JSON))(stream)
     val resultCount = Await.result(et.value, Duration.Inf)
 
     val lines = stream.toString.split("\n")
@@ -111,7 +106,7 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
 
     val numRecords = 2
     val stream = new ByteArrayOutputStream()
-    val et: DatafinitiFuture[Int] = apiv4.download(SearchRequestV4("""categories:hotels AND city:Alkmaar""", BusinessesBasic, numRecords, JSON), sequential = true)(stream)
+    val et: DatafinitiFuture[Int] = apiv4.download(SearchRequestV4("""categories:hotels AND city:Alkmaar""", BusinessesBasic, Some(numRecords), JSON), sequential = true)(stream)
     val resultCount = Await.result(et.value, Duration.Inf)
 
     val lines = stream.toString.split("\n")

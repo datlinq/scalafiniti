@@ -346,11 +346,13 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
         val downloaded = (json \\ "num_downloaded").extractOpt[Double]
 
         val percentage: Option[Double] = (total, downloaded) match {
-          case (Some(t), Some(d)) => Some(d / t * 100.0)
+          case (Some(t), Some(d)) if t > 0 => Some(d / t * 100.0)
           case _ => None
         }
 
+
         status match {
+          case Some(_) if total.getOrElse(1.0) <= 0.0 => Right((true, percentage))
           case Some(s) if s.toLowerCase() == "completed" => Right((true, percentage))
           case Some(s) if s.toLowerCase() == "started" => Right((false, percentage))
           case Some(s) if s.toLowerCase() == "running" => Right((false, percentage))
