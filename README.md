@@ -12,6 +12,7 @@ This is an open source wrapper for that API, maintained by [Datlinq](http://datl
 ## Datafiniti API endpoints supported
 - Business Data
 - Product Data
+- Property Data
 
 ## Use
 
@@ -21,7 +22,7 @@ This is an open source wrapper for that API, maintained by [Datlinq](http://datl
 Add to your build.sbt
 
 ```scala
-libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.2.6"
+libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.3.1"
 ```
 
 Then add import statement
@@ -29,14 +30,16 @@ Then add import statement
 ```scala
 import com.datlinq.datafiniti._
 import com.datlinq.datafiniti.config.DatafinitiAPIFormats._
-import com.datlinq.datafiniti.config.DatafinitiAPIViews._
+import com.datlinq.datafiniti.config.DatafinitiAPIViewsV4._
+import com.datlinq.datafiniti.config.DatafinitiAPITypes._
 ```
 
-Create an  APIv3 object
+Create an  APIv4 object
 
 ```scala
-val apiKey = "..."
-val apiv3 = DatafinitiAPIv3(apiKey)
+val email = "..."
+val password = "..."
+val apiv4 = DatafinitiAPIv4(email, password)
 ```
 
 
@@ -53,12 +56,15 @@ The async calls return an DatafinitiFuture[T] which are [EitherT](https://typele
 This makes the Eithers in Futures composable in for comprehensions and such
 
 ```scala
-val response:DatafinitiFuture[JValue] = apiv3.query(
-  apiView = BusinessesAllBasic, 
-  query = Some("categories:hotels"), 
-  numberOfRecords = Some(1), 
-  download = Some(false), 
-  format = JSON)
+val response:DatafinitiFuture[JValue] = apiv4.search(
+  SearchRequestV4(
+    query = "categories:hotels",
+    view_name = BusinessesBasic,
+    records = Some(1),
+    format = JSON,
+    download = false,
+    view = None
+    ))    
 ```
 
 #### Download
@@ -67,23 +73,23 @@ The Download flow contains of multiple API calls first triggering the download, 
 The method `downloadLinks` returns a List of Strings wrapped in a DatafinitiFuture.
 
 ```scala
-val response:DatafinitiFuture[List[String]] = apiv3.downloadLinks(
-    apiView = BusinessesAllNested,
-    query = Some("""categories:hotels AND city:"Rotterdam""""),
-    format = JSON,
-    numRecords = None)
+val response:DatafinitiFuture[List[String]] = apiv4.downloadLinks(
+  SearchRequestV4(
+      query = """categories:hotels AND city:"Capelle aan den IJssel"""",
+      view_name = BusinessesBasic,
+      records = Some(1),
+      format = JSON,
+      download = true,
+      view = None
+  ))        
 ```
 
 or download all files directly to a stream. Pass an outputstream to append lines, beware that resulting file may have records be out of order if there are multiple download files in the response, to prevent this set sequential to true (will be slower).
 The returned integer contains the total count of all (or limited by numberOfRecords) imported records
 
 ```scala
-val response:DatafinitiFuture[Int] = apiv3.download(
-    apiView = BusinessesAllNested,
-    query = Some("""categories:hotels AND city:"Rotterdam""""),
-    format = JSON,
-    numberOfRecords = None,
-    sequential = false)(stream)
+val response:DatafinitiFuture[Int] = apiv4.download(
+    SearchRequestV4("""categories:hotels AND city:Rotterdam""", BusinessesBasic, numRecords, JSON), sequential = true)(stream)
 ```
 
 
@@ -93,14 +99,14 @@ User information, including access rights and remaining requests are accessed by
 userInfo, returning the entire Json (or sub json if string was passed)
 
 ```scala
-val et: DatafinitiFuture[JValue] = apiv3.userInfo()
+val et: DatafinitiFuture[JValue] = apiv4.userInfo()
 ```
 
 and userInfoField, returning a specificly extracted value from user info (like  "available_downloads")
 
 
 ```scala
-val et: DatafinitiFuture[Option[Long]] = apiv3.userInfoField("available_downloads")
+val et: DatafinitiFuture[Option[Long]] = apiv4.userInfoField("available_downloads")
 ```
 
 
@@ -109,6 +115,22 @@ val et: DatafinitiFuture[Option[Long]] = apiv3.userInfoField("available_download
 
 * `JSON`
 * `CSV` (basic query still returns json result, but with one field filled with CSV data)
+
+### possible API Views in v4
+
+* `BusinessesDefault` - null
+* `BusinessesAllFlatMenus` - business_flat_menus"
+* `BusinessesAllFlatReviews` - business_flat_reviews"
+* `BusinessesAllNested` - business_all_nested"
+* `BusinessesNoReviews` - business_no_reviews"
+* `BusinessesBasic` - business_basic"
+* `ProductsDefault` - null
+* `ProductsAllNested` - product_all_nested"
+* `ProductsFlatPrices` - product_flat_prices"
+* `ProductsFlatReviews` - product_flat_reviews"
+* `PropertiesDefault` - null
+* `PropertiesFlatPrices` - property_flat_prices"
+* `PropertiesFlatReviews` - property_flat_reviews"
 
 ### possible API Views in v3
 
@@ -132,65 +154,59 @@ val et: DatafinitiFuture[Option[Long]] = apiv3.userInfoField("available_download
 ## Sample
 
 ```scala
-import com.datlinq.datafiniti._
-import com.datlinq.datafiniti.config.DatafinitiAPIFormats._
-import com.datlinq.datafiniti.config.DatafinitiAPIViews._
-
-import org.json4s.JsonAST.JNothing
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-
-import java.io.FileOutputStream
-
-import scala.concurrent.ExecutionContext.Implicits.global
+    import com.datlinq.datafiniti.config.DatafinitiAPIFormats._
+    import com.datlinq.datafiniti.config.DatafinitiAPIViewsV4._
+    import com.datlinq.datafiniti.request.SearchRequest.SearchRequestV4
 
 
+    import org.json4s.JsonAST.JNothing
+    import scala.concurrent.Await
+    import scala.concurrent.duration.Duration
 
-val apiKey = "...."
-val apiv3 = DatafinitiAPIv3(apiKey)
+    import java.io.FileOutputStream
 
-// query
-val futureEither = apiv3.query(
-  apiView = BusinessesAllNested,
-  query = Some("""categories:hotels AND city:"Den Helder""""),
-  numberOfRecords = Some(10),
-  download = Some(false),
-  format = JSON)
+    import scala.concurrent.ExecutionContext.Implicits.global
 
-val result = Await.result(futureEither.value, Duration.Inf)
+    val email = "...."
+    val password = "...."
+    val apiv4 = DatafinitiAPIv4(email, password)
 
-val json = result.getOrElse(JNothing)
+    // query
+    val futureEither = apiv4.search(
+      SearchRequestV4("""categories:restaurant AND city:Bergschenhoek""", BusinessesAllNested, Some(10), JSON))
+
+    val result = Await.result(futureEither.value, Duration.Inf)
+
+    val json = result.getOrElse(JNothing)
 
 
 
-// download links
-val futureEither2 = apiv3.downloadLinks(
-  apiView = BusinessesAllNested,
-  query = Some("""categories:hotels AND city:"Den Helder""""),
-  format = JSON,
-  numberOfRecords = None
-)
+    // download links
+    val futureEither2 = apiv4.downloadLinks(
+      SearchRequestV4("""categories:restaurant AND city:Lansingerland""", BusinessesAllNested)
+    )
 
-val result2 = Await.result(futureEither2.value, Duration.Inf)
+    val result2 = Await.result(futureEither2.value, Duration.Inf)
 
-val links = result2.getOrElse(Nil)
+    val links = result2.getOrElse(Nil)
 
 
-// download
-val stream = new FileOutputStream("/tmp/output.json")
+    // download
+    val stream = new FileOutputStream("/tmp/output.json")
 
-val futureEither3 = apiv3.downloadLinks(
-  apiView = BusinessesAllNested,
-  query = Some("""categories:hotels AND city:"Den Helder""""),
-  format = JSON,
-  numberOfRecords = None,
-  sequential = false
-)(stream)
+    val futureEither3 = apiv4.download(
+      SearchRequestV4(
+        view_name = BusinessesAllNested,
+        query = """categories:restaurant AND city:"Berkel en Rodenrijs"""",
+        format = JSON,
+        num_records = None
+      ),
+      sequential = false
+    )(stream)
 
-val result3 = Await.result(futureEither3.value, Duration.Inf)
+    val result3 = Await.result(futureEither3.value, Duration.Inf)
 
-stream.close()
-
+    stream.close()
 
 ```
 

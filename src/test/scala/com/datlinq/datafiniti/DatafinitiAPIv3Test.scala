@@ -4,7 +4,7 @@ import java.io.ByteArrayOutputStream
 
 import com.datlinq.datafiniti.config.DatafinitiAPIFormats.{CSV, JSON}
 import com.datlinq.datafiniti.config.DatafinitiAPITypes._
-import com.datlinq.datafiniti.config.DatafinitiAPIViews.{BusinessesAllBasic, ProductsAll}
+import com.datlinq.datafiniti.config.DatafinitiAPIViewsV3.{BusinessesAllBasic, ProductsAll}
 import com.datlinq.datafiniti.response.DatafinitiTypes.DatafinitiFuture
 import com.typesafe.config.{Config, ConfigFactory}
 import org.json4s._
@@ -20,6 +20,7 @@ import scala.concurrent.duration._
   * Created by Tom Lous on 30/08/2017.
   * Copyright © 2017 Datlinq B.V..
   */
+@deprecated("New v4 version now available: https://datafiniti-api.readme.io/v3/docs/migrating-from-v3-to-v4", "2017-12-15")
 class DatafinitiAPIv3Test extends fixture.FunSuite with PrivateMethodTester {
 
   type FixtureParam = DatafinitiAPIv3

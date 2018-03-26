@@ -12,6 +12,14 @@ class DatafinitiAPITypesTest extends FunSuite {
   test("toString") {
     assert(Businesses.toString === "businesses")
     assert(Products.toString === "products")
+    assert(Properties.toString === "properties")
+  }
+
+  test("fromString") {
+    assert(APIType.fromString("buSineSSes") === Businesses)
+    assert(APIType.fromString("producTS") === Products)
+    assert(APIType.fromString("propertIEs") === Properties)
+    assert(APIType.fromString("custom") === CustomType("custom"))
   }
 
 }
