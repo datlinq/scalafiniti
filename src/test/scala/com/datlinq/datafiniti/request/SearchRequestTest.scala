@@ -27,7 +27,6 @@ class SearchRequestTest extends FunSuite {
     view = Some(List("view1", "view2"))
   )
 
-
   test("SearchRequestV4") {
     assert(s.query === "queryData")
     assert(s.view_name === BusinessesAllNested)
@@ -37,10 +36,6 @@ class SearchRequestTest extends FunSuite {
     assert(s.view === Some(List("view1", "view2")))
   }
 
-
-  test("json4sFormats") {
-    assert(SearchRequest.json4sFormats === DefaultFormats)
-  }
 
 
   test("SearchRequestSerializerV4") {
