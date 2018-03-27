@@ -515,6 +515,7 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
       total
 
     } else {
+      // @todo limit/config number of parallel threads (eg. this one time at band camp it eitherLinksOrError length was 120
       eitherLinksOrError.map(_.map(url => {
         Future {
           dataToStream(url)

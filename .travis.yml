@@ -24,7 +24,7 @@ script:
   - sbt clean coverage +test coverageReport coveralls
 
 after_success:
-  - sbt "sonatypeOpen com.datlinq com.datlinq" +publishSigned sonatypeReleaseAll
+  - test $TRAVIS_BRANCH = "master" && sbt "sonatypeOpen com.datlinq com.datlinq" +publishSigned sonatypeReleaseAll
 
 branches:
   only:

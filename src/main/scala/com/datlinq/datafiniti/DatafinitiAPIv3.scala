@@ -441,6 +441,7 @@ case class DatafinitiAPIv3(apiToken: String, httpTimeoutSeconds: Int = 3600) ext
 
 }
 
+@deprecated("New v4 version now available: https://datafiniti-api.readme.io/v3/docs/migrating-from-v3-to-v4", "2017-12-15")
 object DatafinitiAPIv3 {
 
   /**
