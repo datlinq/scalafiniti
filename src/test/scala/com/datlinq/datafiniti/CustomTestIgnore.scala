@@ -1,6 +1,7 @@
 package com.datlinq.datafiniti
 
 
+import java.io.FileOutputStream
 
 import com.typesafe.config.{Config, ConfigFactory}
 import org.json4s._
@@ -128,36 +129,40 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
 
     // recordById
     val futureEither2 = apiv4.recordById("AWEF3R5B3-Khe5l_drZz", Businesses)
-    //    println(futureEither2)
-    //
-    //    // download links
-    //    val futureEither3 = apiv4.downloadLinks(
-    //      SearchRequestV4("""categories:restaurant AND city:Lansingerland""", BusinessesAllNested)
-    //    )
-    //
-    //    val result3 = Await.result(futureEither3.value, Duration.Inf)
-    //
-    //    val links = result3.right.getOrElse(Nil)
-    //
-    //
-    //    // download
-    //    val stream = new FileOutputStream("/tmp/output.json")
-    //
-    //    val futureEither4 = apiv4.download(
-    //      SearchRequestV4(
-    //        view_name = BusinessesAllNested,
-    //        query = """categories:restaurant AND city:"Berkel en Rodenrijs"""",
-    //        format = JSON,
-    //        num_records = None
-    //      ),
-    //      sequential = false
-    //    )(stream)
-    //
-    //    val result4 = Await.result(futureEither4.value, Duration.Inf)
-    //
-    //    stream.close()
-    //
-    println(futureEither2)
+
+    val result2 = Await.result(futureEither2.value, Duration.Inf)
+
+    val json2 = result2.right.getOrElse(JNothing)
+
+
+    // download links
+    val futureEither3 = apiv4.downloadLinks(
+      SearchRequestV4("""categories:restaurant AND city:Lansingerland""", BusinessesAllNested)
+    )
+
+    val result3 = Await.result(futureEither3.value, Duration.Inf)
+
+    val links = result3.right.getOrElse(Nil)
+
+
+    // download
+    val stream = new FileOutputStream("/tmp/output.json")
+
+    val futureEither4 = apiv4.download(
+      SearchRequestV4(
+        view_name = BusinessesAllNested,
+        query = """categories:restaurant AND city:"Berkel en Rodenrijs"""",
+        format = JSON,
+        num_records = None
+      ),
+      sequential = false
+    )(stream)
+
+    val result4 = Await.result(futureEither4.value, Duration.Inf)
+
+    stream.close()
+
+
   }
   }
 

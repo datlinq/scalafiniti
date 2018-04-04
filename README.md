@@ -169,21 +169,19 @@ val et: DatafinitiFuture[Option[Long]] = apiv4.userInfoField("available_download
 
 ```scala
     import com.datlinq.datafiniti.config.DatafinitiAPIFormats._
+    import com.datlinq.datafiniti.config.DatafinitiAPITypes._
     import com.datlinq.datafiniti.config.DatafinitiAPIViewsV4._
     import com.datlinq.datafiniti.request.SearchRequest.SearchRequestV4
-
-
     import org.json4s.JsonAST.JNothing
+
     import scala.concurrent.Await
+    import scala.concurrent.ExecutionContext.Implicits.global
     import scala.concurrent.duration.Duration
 
-    import java.io.FileOutputStream
-
-    import scala.concurrent.ExecutionContext.Implicits.global
 
     val email = "...."
     val password = "...."
-    val apiv4 = DatafinitiAPIv4(email, password)
+    val apiv4 = DatafinitiAPIv4()
 
     // query
     val futureEither = apiv4.search(
@@ -191,24 +189,30 @@ val et: DatafinitiFuture[Option[Long]] = apiv4.userInfoField("available_download
 
     val result = Await.result(futureEither.value, Duration.Inf)
 
-    val json = result.getOrElse(JNothing)
+    val json = result.right.getOrElse(JNothing)
 
-
-
-    // download links
-    val futureEither2 = apiv4.downloadLinks(
-      SearchRequestV4("""categories:restaurant AND city:Lansingerland""", BusinessesAllNested)
-    )
+    // recordById
+    val futureEither2 = apiv4.recordById("AWEF3R5B3-Khe5l_drZz", Businesses)
 
     val result2 = Await.result(futureEither2.value, Duration.Inf)
 
-    val links = result2.getOrElse(Nil)
+    val json2 = result2.right.getOrElse(JNothing)
+
+
+    // download links
+    val futureEither3 = apiv4.downloadLinks(
+      SearchRequestV4("""categories:restaurant AND city:Lansingerland""", BusinessesAllNested)
+    )
+
+    val result3 = Await.result(futureEither3.value, Duration.Inf)
+
+    val links = result3.right.getOrElse(Nil)
 
 
     // download
     val stream = new FileOutputStream("/tmp/output.json")
 
-    val futureEither3 = apiv4.download(
+    val futureEither4 = apiv4.download(
       SearchRequestV4(
         view_name = BusinessesAllNested,
         query = """categories:restaurant AND city:"Berkel en Rodenrijs"""",
@@ -218,10 +222,9 @@ val et: DatafinitiFuture[Option[Long]] = apiv4.userInfoField("available_download
       sequential = false
     )(stream)
 
-    val result3 = Await.result(futureEither3.value, Duration.Inf)
+    val result4 = Await.result(futureEither4.value, Duration.Inf)
 
     stream.close()
-
 ```
 
 ## Compatibility
