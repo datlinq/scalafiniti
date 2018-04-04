@@ -21,12 +21,15 @@ object DatafinitiAPIViewsV4 {
 
   object APIViewV4 {
     def fromString(view_name: String): APIViewV4 = {
-      view_name.split("_").toList match {
-        case Nil => CustomViewV4("", APIType.fromString(""))
-        case typeName :: Nil => CustomViewV4(typeName, APIType.fromString(typeName))
-        case typeName :: parts => CustomViewV4(parts.mkString("_"), APIType.fromString(typeName))
-
-        // @todo probably match agains existing objects, but probably not needed
+      List(BusinessesDefault, BusinessesAllFlatMenus, BusinessesAllFlatReviews, BusinessesAllNested, BusinessesNoReviews, BusinessesBasic, ProductsDefault, ProductsAllNested, ProductsFlatPrices, ProductsFlatReviews, PropertiesDefault, PropertiesFlatPrices, PropertiesFlatReviews)
+        .find(_.toString == view_name) match {
+        case Some(view) => view
+        case None =>
+          view_name.split("_").toList match {
+            case Nil => CustomViewV4("", APIType.fromString(""))
+            case typeName :: Nil => CustomViewV4(typeName, APIType.fromString(typeName))
+            case typeName :: parts => CustomViewV4(parts.mkString("_"), APIType.fromString(typeName))
+          }
       }
     }
   }
