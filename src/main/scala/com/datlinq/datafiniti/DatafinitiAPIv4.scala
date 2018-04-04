@@ -280,6 +280,19 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
     post(url, Some(searchRequest))((_, response) => Right(parse(response.body)))
   }
 
+  /**
+    * Get a Specific Record
+    *
+    * @param id
+    * @param apiType
+    * @param ec
+    * @return EitherT[Future, DatafinitiError, JValue]
+    */
+  def recordById(id: String, apiType: APIType)(implicit ec: ExecutionContext): DatafinitiFuture[JValue] = {
+    val url = s"$API_URL/$apiType/$id"
+    get(url)((_, response) => Right(parse(response.body)))
+  }
+
 
   /**
     * Do query but returns urls for the download of the resulting dataset

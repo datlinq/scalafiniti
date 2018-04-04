@@ -67,6 +67,20 @@ val response:DatafinitiFuture[JValue] = apiv4.search(
     ))    
 ```
 
+
+#### Record by Id
+
+To get an individual record from Datafiniti there is a specific call `recordById`
+The main difference is that it's a Restful GET request with id in url.
+The SDK syntax is similar to the query, but simpler.
+
+Only a id as `String` and a specific `APIType` are required
+
+```scala
+val response:DatafinitiFuture[JValue] = apiv4.recordById("xxxxxxxxx", Businesses)
+```
+ 
+
 #### Download
 
 The Download flow contains of multiple API calls first triggering the download, then redirect to polling API call untill the download is marked as COMPLETED afterwards redirecting to a similar API call to fetch the download URL's

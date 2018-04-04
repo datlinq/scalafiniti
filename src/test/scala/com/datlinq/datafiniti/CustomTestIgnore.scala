@@ -1,11 +1,12 @@
 package com.datlinq.datafiniti
 
 
+
 import com.typesafe.config.{Config, ConfigFactory}
 import org.json4s._
 import org.scalatest._
 
-
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * Created by Tom Lous on 07/09/2017.
@@ -14,13 +15,13 @@ import org.scalatest._
 class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
 
 
-  type FixtureParam = DatafinitiAPIv3
+  type FixtureParam = DatafinitiAPIv4
   implicit val json4sFormats: DefaultFormats.type = DefaultFormats
 
   def withFixture(test: OneArgTest): Outcome = {
     implicit val config: Config = ConfigFactory.load()
-    val apiv3 = DatafinitiAPIv3()
-    test(apiv3)
+    val apiv4 = DatafinitiAPIv4()
+    test(apiv4)
   }
 
 
@@ -99,12 +100,11 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
   //  }
   //  }
 
-  ignore("README") { x => {
+  test("README") { apiv4 => {
     implicit val config: Config = ConfigFactory.load()
 
-    import java.io.FileOutputStream
-
     import com.datlinq.datafiniti.config.DatafinitiAPIFormats._
+    import com.datlinq.datafiniti.config.DatafinitiAPITypes._
     import com.datlinq.datafiniti.config.DatafinitiAPIViewsV4._
     import com.datlinq.datafiniti.request.SearchRequest.SearchRequestV4
     import org.json4s.JsonAST.JNothing
@@ -126,33 +126,38 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
 
     val json = result.right.getOrElse(JNothing)
 
-
-    // download links
-    val futureEither2 = apiv4.downloadLinks(
-      SearchRequestV4("""categories:restaurant AND city:Lansingerland""", BusinessesAllNested)
-    )
-
-    val result2 = Await.result(futureEither2.value, Duration.Inf)
-
-    val links = result2.right.getOrElse(Nil)
-
-
-    // download
-    val stream = new FileOutputStream("/tmp/output.json")
-
-    val futureEither3 = apiv4.download(
-      SearchRequestV4(
-        view_name = BusinessesAllNested,
-        query = """categories:restaurant AND city:"Berkel en Rodenrijs"""",
-        format = JSON,
-        num_records = None
-      ),
-      sequential = false
-    )(stream)
-
-    val result3 = Await.result(futureEither3.value, Duration.Inf)
-
-    stream.close()
+    // recordById
+    val futureEither2 = apiv4.recordById("AWEF3R5B3-Khe5l_drZz", Businesses)
+    //    println(futureEither2)
+    //
+    //    // download links
+    //    val futureEither3 = apiv4.downloadLinks(
+    //      SearchRequestV4("""categories:restaurant AND city:Lansingerland""", BusinessesAllNested)
+    //    )
+    //
+    //    val result3 = Await.result(futureEither3.value, Duration.Inf)
+    //
+    //    val links = result3.right.getOrElse(Nil)
+    //
+    //
+    //    // download
+    //    val stream = new FileOutputStream("/tmp/output.json")
+    //
+    //    val futureEither4 = apiv4.download(
+    //      SearchRequestV4(
+    //        view_name = BusinessesAllNested,
+    //        query = """categories:restaurant AND city:"Berkel en Rodenrijs"""",
+    //        format = JSON,
+    //        num_records = None
+    //      ),
+    //      sequential = false
+    //    )(stream)
+    //
+    //    val result4 = Await.result(futureEither4.value, Duration.Inf)
+    //
+    //    stream.close()
+    //
+    println(futureEither2)
   }
   }
 
