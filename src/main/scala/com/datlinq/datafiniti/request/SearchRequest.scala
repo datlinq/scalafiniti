@@ -12,7 +12,10 @@ import org.json4s.{CustomSerializer, _}
 
 object SearchRequest {
 
+  // $COVERAGE-OFF$Seems a bit unessecary to test this
   private implicit val json4sFormats = DefaultFormats
+
+  // $COVERAGE-ON$
 
   /**
     * Body params expected for /search api request

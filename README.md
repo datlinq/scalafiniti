@@ -22,7 +22,7 @@ This is an open source wrapper for that API, maintained by [Datlinq](http://datl
 Add to your build.sbt
 
 ```scala
-libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.3.2"
+libraryDependencies += "com.datlinq" %% "scalafiniti" % "0.3.4"
 ```
 
 Then add import statement
