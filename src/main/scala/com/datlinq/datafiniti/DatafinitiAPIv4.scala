@@ -383,7 +383,7 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
       def pollStatus()(implicit ec: ExecutionContext): Unit = {
         logger.debug(s"Do poll for status")
         get(pollUrl)(checkDownloadCompleted).value.onComplete {
-          case Success(Right((true, _, total))) =>
+          case Success(Right((true, _, _))) =>
             logger.debug(s"Download ready from $pollUrl")
             promiseStatus.success(true)
           case Success(Right((false, percentageDone, total))) =>
