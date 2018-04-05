@@ -280,6 +280,19 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
     post(url, Some(searchRequest))((_, response) => Right(parse(response.body)))
   }
 
+  /**
+    * Get a Specific Record
+    *
+    * @param id
+    * @param apiType
+    * @param ec
+    * @return EitherT[Future, DatafinitiError, JValue]
+    */
+  def recordById(id: String, apiType: APIType)(implicit ec: ExecutionContext): DatafinitiFuture[JValue] = {
+    val url = s"$API_URL/$apiType/$id"
+    get(url)((_, response) => Right(parse(response.body)))
+  }
+
 
   /**
     * Do query but returns urls for the download of the resulting dataset
@@ -339,7 +352,7 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
        * @param response Response from the pollUrl
        * @return Either an DatafinitiError or status as ready ("Completed" => true, "Started" => false)
        */
-      def checkDownloadCompleted(url: String, response: HttpResponse[String]): DatafinitiResponse[(Boolean, Option[Double])] = {
+      def checkDownloadCompleted(url: String, response: HttpResponse[String]): DatafinitiResponse[(Boolean, Option[Double], Option[Double])] = {
         val json = parse(response.body)
         val status = (json \\ "status").extractOpt[String]
         val total = (json \\ "total_cost").extractOpt[Double]
@@ -352,10 +365,10 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
 
 
         status match {
-          case Some(_) if total.getOrElse(1.0) <= 0.0 => Right((true, percentage))
-          case Some(s) if s.toLowerCase() == "completed" => Right((true, percentage))
-          case Some(s) if s.toLowerCase() == "started" => Right((false, percentage))
-          case Some(s) if s.toLowerCase() == "running" => Right((false, percentage))
+          case Some(_) if total.getOrElse(1.0) <= 0.0 => Right((true, percentage, total))
+          case Some(s) if s.toLowerCase() == "completed" => Right((true, percentage, total))
+          case Some(s) if s.toLowerCase() == "started" => Right((false, percentage, total))
+          case Some(s) if s.toLowerCase() == "running" => Right((false, percentage, total))
           case Some(s) => Left(DatafinitiError.UnexpectedDownloadStatus(s, response.body, url))
           case None => Left(DatafinitiError.NoDownloadStatus(response.body, url))
         }
@@ -370,11 +383,11 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
       def pollStatus()(implicit ec: ExecutionContext): Unit = {
         logger.debug(s"Do poll for status")
         get(pollUrl)(checkDownloadCompleted).value.onComplete {
-          case Success(Right((true, _))) =>
+          case Success(Right((true, _, _))) =>
             logger.debug(s"Download ready from $pollUrl")
             promiseStatus.success(true)
-          case Success(Right((false, percentageDone))) =>
-            logger.debug(percentageDone.map(p => f"$p%.2f%% ").getOrElse("") + s"Download not ready yet from $pollUrl")
+          case Success(Right((false, percentageDone, total))) =>
+            logger.debug(percentageDone.map(p => f"$p%.2f%% ").getOrElse("") + total.map(t => s" of ${t.toInt}").getOrElse("") + s"Download not ready yet from $pollUrl")
             scheduleDelayedPoll()
           case Success(Left(error: DatafinitiError)) =>
             logger.error(s"Check poll ${error.url} failed => $error")
@@ -473,7 +486,7 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
       */
     def dataToStream(url: String): Int = {
       logger.debug(s"Download from $url")
-      implicit val codec: Codec = Codec.UTF8 // @todo check if this works
+      implicit val codec: Codec = Codec.UTF8
       Http(url).timeout(httpTimeoutSeconds * 1000, httpTimeoutSeconds * 1000).execute(
         inputStream => Try({
           var markedFailed = false
@@ -515,6 +528,7 @@ case class DatafinitiAPIv4(email: String, password: String, httpTimeoutSeconds: 
       total
 
     } else {
+      // @todo limit/config number of parallel threads (eg. this one time at band camp it eitherLinksOrError length was 120
       eitherLinksOrError.map(_.map(url => {
         Future {
           dataToStream(url)

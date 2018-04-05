@@ -70,6 +70,24 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
   }
 
 
+  test("recordById") { apiv4 => {
+    val ids = List("AVwdZsarkufWRAb55hYL", "AVwdE4vlIN2L1WUfr-UC", "AVwdCzdk_7pvs4fz1qog")
+    //    val resultList = Await.result(apiv4.search(SearchRequestV4("categories:hotels", BusinessesBasic, Some(10), JSON)).value, Duration.Inf).map( _ \\ "id")
+
+    val dfs: List[DatafinitiFuture[JValue]] = ids.map(id => apiv4.recordById(id, Businesses))
+    val res = Await.result(Future.sequence(dfs.map(_.value)), Duration.Inf)
+
+
+    val names = res.flatMap {
+      case Right(json) => (json \\ "name").extractOpt[String]
+      case _ => None
+    }
+
+    assert(names.sorted === List("Super 8 Las Cruces/La Posada Lane", "Motel 6", "Knights Inn").sorted)
+
+  }
+  }
+
   test("downloadLinks") { apiv4 => {
 
     val et: DatafinitiFuture[List[String]] = apiv4.downloadLinks(SearchRequestV4("""categories:hotels AND city:"Den Helder"""", BusinessesBasic, Some(1), JSON))
