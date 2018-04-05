@@ -77,7 +77,11 @@ class DatafinitiAPIv4Test extends fixture.FunSuite with PrivateMethodTester {
     val dfs: List[DatafinitiFuture[JValue]] = ids.map(id => apiv4.recordById(id, Businesses))
     val res = Await.result(Future.sequence(dfs.map(_.value)), Duration.Inf)
 
-    val names = res.map(_.right.map(_ \\ "name").map(_.extract[String]).getOrElse("-"))
+
+    val names = res.flatMap {
+      case Right(json) => (json \\ "name").extractOpt[String]
+      case _ => None
+    }
 
     assert(names.sorted === List("Super 8 Las Cruces/La Posada Lane", "Motel 6", "Knights Inn").sorted)
 

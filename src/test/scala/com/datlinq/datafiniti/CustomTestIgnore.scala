@@ -127,6 +127,7 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
 
     val json = result.right.getOrElse(JNothing)
 
+
     // recordById
     val futureEither2 = apiv4.recordById("AWEF3R5B3-Khe5l_drZz", Businesses)
 
@@ -162,6 +163,13 @@ class CustomTestIgnore extends fixture.FunSuite with PrivateMethodTester {
 
     stream.close()
 
+
+    assert(json !== null)
+    assert(json2 !== null)
+    assert(links !== null)
+    assert(result4 !== null)
+    assert(email !== null)
+    assert(password !== null)
 
   }
   }
